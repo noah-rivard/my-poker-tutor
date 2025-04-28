@@ -1,0 +1,11 @@
+{
+  "name": "codex-space",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:2": { "version": "22" }
+  },
+  "postCreateCommand": "npm install -g @openai/codex",
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash"
+  }
+}

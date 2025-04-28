@@ -1,0 +1,13 @@
+# Virtual environment
+.venv/
+# Environment variables file
+.env
+# Byte-compiled / cache
+__pycache__/
+.pytest_cache/
+*.py[cod]
+# Editor directories and files
+.vscode/
+.idea/
+# OS files
+.DS_Store
