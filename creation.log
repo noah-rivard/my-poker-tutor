@@ -1,0 +1,362 @@
+2025-04-29 06:19:40.387Z: Host information
+2025-04-29 06:19:40.387Z: ----------------
+2025-04-29 06:19:40.387Z: OS: Ubuntu 22.04.5 LTS (stable release)
+2025-04-29 06:19:40.388Z: Image details: https://github.com/github/codespaces-host-images/blob/main/README.md
+2025-04-29 06:19:40.388Z: ----------------
+
+=================================================================================
+2025-04-29 06:19:40.390Z: Configuration starting...
+2025-04-29 06:19:40.398Z: Cloning...
+
+=================================================================================
+2025-04-29 06:19:40.429Z: Creating container...
+2025-04-29 06:19:40.462Z: $ devcontainer up --id-label Type=codespaces --workspace-folder /var/lib/docker/codespacemount/workspace/my-poker-tutor --mount type=bind,source=/.codespaces/agent/mount/cache,target=/vscode --user-data-folder /var/lib/docker/codespacemount/.persistedshare --container-data-folder .vscode-remote/data/Machine --container-system-data-folder /var/vscode-remote --log-level trace --log-format json --update-remote-user-uid-default never --mount-workspace-git-root false --omit-config-remote-env-from-metadata --skip-non-blocking-commands --skip-post-create --remove-existing-container --config "/var/lib/docker/codespacemount/workspace/my-poker-tutor/.devcontainer/devcontainer.json" --override-config /root/.codespaces/shared/merged_devcontainer.json --default-user-env-probe loginInteractiveShell --container-session-data-folder /workspaces/.codespaces/.persistedshare/devcontainers-cli/cache --secrets-file /root/.codespaces/shared/user-secrets-envs.json
+2025-04-29 06:19:40.686Z: @devcontainers/cli 0.68.0. Node.js v18.20.8. linux 6.8.0-1026-azure x64.
+2025-04-29 06:19:41.305Z: Resolving Feature dependencies for 'ghcr.io/devcontainers/features/gui:1'...
+2025-04-29 06:19:41.891Z: Error: ERR: Feature 'ghcr.io/devcontainers/features/gui:1' could not be processed.  You may not have permission to access this Feature, or may not be logged in.  If the issue persists, report this to the Feature author.
+2025-04-29 06:19:41.894Z:     at SeA (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:285:9703)
+2025-04-29 06:19:41.894Z:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-04-29 06:19:41.894Z:     at async OC (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:285:12273)
+2025-04-29 06:19:41.894Z:     at async Rc (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:285:12501)
+2025-04-29 06:19:41.894Z:     at async Gc (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:390:1821)
+2025-04-29 06:19:41.894Z: {"outcome":"error","message":"ERR: Feature 'ghcr.io/devcontainers/features/gui:1' could not be processed.  You may not have permission to access this Feature, or may not be logged in.  If the issue persists, report this to the Feature author.","description":"An error occurred setting up the container."}
+2025-04-29 06:19:41.895Z:     at async XC (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:393:2228)
+2025-04-29 06:19:41.895Z:     at async Yc (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:393:282)
+2025-04-29 06:19:41.896Z:     at async Pm (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:465:1934)
+2025-04-29 06:19:41.896Z:     at async NH (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:465:610)
+2025-04-29 06:19:41.896Z:     at async YtA (/.codespaces/agent/bin/node_modules/@devcontainers/cli/dist/spec-node/devContainersSpecCLI.js:482:3771)
+2025-04-29 06:19:41.900Z: devcontainer process exited with exit code 1
+
+====================================== ERROR ====================================
+2025-04-29 06:19:41.903Z: Failed to create container.
+=================================================================================
+2025-04-29 06:19:41.903Z: Error: ERR: Feature 'ghcr.io/devcontainers/features/gui:1' could not be processed.  You may not have permission to access this Feature, or may not be logged in.  If the issue persists, report this to the Feature author.
+2025-04-29 06:19:41.906Z: Error code: 1302 (UnifiedContainersErrorFatalCreatingContainer)
+
+====================================== ERROR ====================================
+2025-04-29 06:19:41.914Z: Container creation failed.
+=================================================================================
+2025-04-29 06:19:41.923Z: 
+
+===================================== WARNING ===================================
+2025-04-29 06:19:41.924Z: Creating recovery container.
+=================================================================================
+
+=================================================================================
+2025-04-29 06:19:46.019Z: Creating container...
+2025-04-29 06:19:46.044Z: $ devcontainer up --id-label Type=codespaces --workspace-folder /var/lib/docker/codespacemount/workspace/my-poker-tutor --mount type=bind,source=/.codespaces/agent/mount/cache,target=/vscode --user-data-folder /var/lib/docker/codespacemount/.persistedshare --container-data-folder .vscode-remote/data/Machine --container-system-data-folder /var/vscode-remote --log-level trace --log-format json --update-remote-user-uid-default never --mount-workspace-git-root false --omit-config-remote-env-from-metadata --skip-non-blocking-commands --skip-post-create --config "/var/lib/docker/codespacemount/workspace/my-poker-tutor/.devcontainer/devcontainer.json" --override-config /root/.codespaces/shared/merged_devcontainer.json --default-user-env-probe loginInteractiveShell --container-session-data-folder /workspaces/.codespaces/.persistedshare/devcontainers-cli/cache --secrets-file /root/.codespaces/shared/user-secrets-envs.json
+2025-04-29 06:19:46.233Z: @devcontainers/cli 0.68.0. Node.js v18.20.8. linux 6.8.0-1026-azure x64.
+2025-04-29 06:19:46.791Z: $alpine -c echo Container started
+2025-04-29 06:19:46.813Z: Unable to find image 'mcr.microsoft.com/devcontainers/base:alpine' locally
+2025-04-29 06:19:47.136Z: alpine: 2025-04-29 06:19:47.136Z: Pulling from devcontainers/base
+2025-04-29 06:19:47.268Z: 
+[1A[2K
+f18232174bc9: Pulling fs layer 
+[1B
+[1A[2K
+02a52aef88dc: Pulling fs layer 
+[1B
+[1A[2K
+cbfb2770ec9e: Pulling fs layer 
+[1B
+[1A[2K
+7c9f4895cb74: Pulling fs layer 
+[1B
+[1A[2K
+025d3ce0e08a: Pulling fs layer 
+[1B
+[1A[2K
+1970c0bf698e: Pulling fs layer 
+[1B
+[1A[2K
+0206d75c2b7e: Pulling fs layer 
+[1B[3A[2K
+025d3ce0e08a: Waiting 
+[3B[2A[2K
+1970c0bf698e: Waiting 
+[2B[1A[2K
+0206d75c2b7e: Waiting 
+[1B[4A[2K
+7c9f4895cb74: Waiting 
+[4B2025-04-29 06:19:47.415Z: [7A[2K
+f18232174bc9: Downloading  48.34kB/3.642MB
+[7B2025-04-29 06:19:47.418Z: [5A[2K
+cbfb2770ec9e: Downloading     133B/133B
+[5B[5A[2K
+cbfb2770ec9e: Verifying Checksum 
+[5B[5A[2K
+cbfb2770ec9e: Download complete 
+[5B2025-04-29 06:19:47.457Z: [6A[2K
+02a52aef88dc: 2025-04-29 06:19:47.457Z: Download complete 
+[6B2025-04-29 06:19:47.507Z: [7A[2K
+f18232174bc9: Download complete 
+[7B2025-04-29 06:19:47.509Z: [7A[2K
+f18232174bc9: 2025-04-29 06:19:47.509Z: Extracting  65.54kB/3.642MB
+[7B2025-04-29 06:19:47.612Z: [7A[2K
+f18232174bc9: Extracting  3.211MB/3.642MB
+[7B2025-04-29 06:19:47.612Z: [4A[2K
+7c9f4895cb74: Downloading     223B/223B
+[4B2025-04-29 06:19:47.613Z: [4A[2K
+7c9f4895cb74: Verifying Checksum 
+[4B[4A[2K
+7c9f4895cb74: Download complete 
+[4B2025-04-29 06:19:47.624Z: [7A[2K
+f18232174bc9: Extracting  3.642MB/3.642MB
+[7B2025-04-29 06:19:47.626Z: [7A[2K2025-04-29 06:19:47.626Z: 
+f18232174bc9: Extracting  3.642MB/3.642MB
+[7B2025-04-29 06:19:47.631Z: [3A[2K
+025d3ce0e08a: Downloading     232B/232B
+[3B[3A[2K2025-04-29 06:19:47.632Z: 
+025d3ce0e08a: Verifying Checksum 
+[3B[3A[2K2025-04-29 06:19:47.632Z: 
+025d3ce0e08a: Download complete 
+[3B2025-04-29 06:19:47.660Z: [7A[2K
+f18232174bc9: Pull complete 
+[7B2025-04-29 06:19:47.661Z: [6A[2K
+02a52aef88dc: Extracting     409B/409B
+[6B[6A[2K
+02a52aef88dc: Extracting     409B/409B
+[6B2025-04-29 06:19:47.726Z: [2A[2K
+1970c0bf698e: Downloading  538.9kB/241MB
+[2B2025-04-29 06:19:47.821Z: [1A[2K
+0206d75c2b7e: Downloading    457kB/44.3MB
+[1B2025-04-29 06:19:47.828Z: [2A[2K
+1970c0bf698e: Downloading  11.34MB/241MB
+[2B2025-04-29 06:19:47.923Z: [1A[2K
+0206d75c2b7e: Downloading  10.08MB/44.3MB
+[1B2025-04-29 06:19:47.930Z: [2A[2K
+1970c0bf698e: Downloading  25.94MB/241MB
+2025-04-29 06:19:47.931Z: [2B2025-04-29 06:19:47.942Z: [6A2025-04-29 06:19:47.942Z: [2K
+2025-04-29 06:19:47.942Z: 02a52aef88dc: Pull complete 
+[6B2025-04-29 06:19:47.977Z: [5A2025-04-29 06:19:47.977Z: [2K
+cbfb2770ec9e: 2025-04-29 06:19:47.977Z: Extracting     133B/133B
+[5B2025-04-29 06:19:47.978Z: [5A[2K
+cbfb2770ec9e: Extracting     133B/133B
+[5B2025-04-29 06:19:48.041Z: [2A[2K
+1970c0bf698e: Downloading  41.07MB/241MB
+[2B2025-04-29 06:19:48.044Z: [1A[2K
+0206d75c2b7e: Downloading  27.05MB/44.3MB
+[1B2025-04-29 06:19:48.156Z: [1A2025-04-29 06:19:48.156Z: [2K
+0206d75c2b7e: Downloading  34.85MB/44.3MB
+[1B[2A[2K
+1970c0bf698e: Downloading  52.43MB/241MB
+[2B2025-04-29 06:19:48.229Z: [1A[2K
+0206d75c2b7e: Verifying Checksum 
+[1B[1A[2K
+0206d75c2b7e: Download complete 
+[1B2025-04-29 06:19:48.246Z: [2A[2K
+1970c0bf698e: Downloading  67.57MB/241MB
+[2B2025-04-29 06:19:48.349Z: [2A[2K
+1970c0bf698e: 2025-04-29 06:19:48.349Z: Downloading  88.11MB/241MB
+[2B2025-04-29 06:19:48.451Z: [2A[2K
+1970c0bf698e: 2025-04-29 06:19:48.452Z: Downloading  108.7MB/241MB
+[2B2025-04-29 06:19:48.553Z: [2A[2K
+1970c0bf698e: Downloading  130.3MB/241MB
+[2B2025-04-29 06:19:48.654Z: [2A[2K
+1970c0bf698e: Downloading  150.3MB/241MB
+[2B2025-04-29 06:19:48.757Z: [2A[2K
+1970c0bf698e: Downloading  170.3MB/241MB
+[2B2025-04-29 06:19:48.859Z: [2A[2K
+1970c0bf698e: Downloading  190.8MB/241MB
+2025-04-29 06:19:48.859Z: [2B2025-04-29 06:19:48.959Z: [2A[2K
+1970c0bf698e: Downloading  211.9MB/241MB
+[2B2025-04-29 06:19:49.001Z: [5A2025-04-29 06:19:49.003Z: [2K
+cbfb2770ec9e: Pull complete 
+[5B2025-04-29 06:19:49.012Z: [4A[2K
+7c9f4895cb74: Extracting     223B/223B
+[4B[4A[2K
+7c9f4895cb74: Extracting     223B/223B
+[4B2025-04-29 06:19:49.065Z: [2A[2K
+1970c0bf698e: Downloading    233MB/241MB
+[2B2025-04-29 06:19:49.100Z: [2A[2K
+1970c0bf698e: Verifying Checksum 
+[2B2025-04-29 06:19:49.101Z: [2A[2K
+1970c0bf698e: Download complete 
+[2B2025-04-29 06:19:51.341Z: [4A2025-04-29 06:19:51.345Z: [2K
+7c9f4895cb74: Pull complete 
+[4B2025-04-29 06:19:51.345Z: [3A[2K
+025d3ce0e08a: Extracting     232B/232B
+[3B2025-04-29 06:19:51.345Z: [3A[2K
+025d3ce0e08a: Extracting     232B/232B
+[3B2025-04-29 06:19:51.368Z: [3A[2K
+025d3ce0e08a: Pull complete 
+[3B2025-04-29 06:19:51.386Z: [2A[2K2025-04-29 06:19:51.386Z: 
+1970c0bf698e: Extracting  557.1kB/241MB
+[2B2025-04-29 06:19:51.489Z: [2A[2K
+1970c0bf698e: Extracting  5.571MB/241MB
+[2B2025-04-29 06:19:51.594Z: [2A2025-04-29 06:19:51.594Z: [2K
+1970c0bf698e: Extracting  13.93MB/241MB
+[2B2025-04-29 06:19:51.701Z: [2A[2K
+1970c0bf698e: Extracting  20.61MB/241MB
+[2B2025-04-29 06:19:51.811Z: [2A[2K
+1970c0bf698e: Extracting  23.95MB/241MB
+[2B2025-04-29 06:19:51.976Z: [2A[2K
+1970c0bf698e: Extracting  25.07MB/241MB
+[2B2025-04-29 06:19:52.128Z: [2A[2K
+1970c0bf698e: Extracting  26.18MB/241MB
+[2B2025-04-29 06:19:52.230Z: [2A[2K
+1970c0bf698e: Extracting  27.85MB/241MB
+[2B2025-04-29 06:19:52.345Z: [2A[2K2025-04-29 06:19:52.346Z: 
+1970c0bf698e: Extracting  30.08MB/241MB
+[2B2025-04-29 06:19:52.457Z: [2A[2K
+1970c0bf698e: Extracting   31.2MB/241MB
+[2B2025-04-29 06:19:52.558Z: [2A[2K
+1970c0bf698e: Extracting  38.44MB/241MB
+[2B2025-04-29 06:19:52.661Z: [2A[2K
+1970c0bf698e: 2025-04-29 06:19:52.661Z: Extracting  44.56MB/241MB
+[2B2025-04-29 06:19:52.767Z: [2A[2K
+1970c0bf698e: Extracting  50.69MB/241MB
+[2B2025-04-29 06:19:52.888Z: [2A[2K
+1970c0bf698e: Extracting  55.71MB/241MB
+[2B2025-04-29 06:19:53.003Z: [2A[2K
+2025-04-29 06:19:53.004Z: 1970c0bf698e: Extracting   59.6MB/241MB
+[2B2025-04-29 06:19:53.117Z: [2A[2K
+1970c0bf698e: Extracting  62.39MB/241MB
+[2B2025-04-29 06:19:53.220Z: [2A2025-04-29 06:19:53.220Z: [2K
+1970c0bf698e: Extracting  71.86MB/241MB
+[2B2025-04-29 06:19:53.325Z: [2A[2K
+1970c0bf698e: Extracting     83MB/241MB
+[2B2025-04-29 06:19:53.427Z: [2A[2K
+1970c0bf698e: Extracting  95.26MB/241MB
+[2B2025-04-29 06:19:53.531Z: [2A[2K
+1970c0bf698e: Extracting  108.1MB/241MB
+[2B2025-04-29 06:19:53.636Z: [2A2025-04-29 06:19:53.637Z: [2K
+1970c0bf698e: Extracting  115.3MB/241MB
+[2B2025-04-29 06:19:53.754Z: [2A[2K
+1970c0bf698e: Extracting  118.1MB/241MB
+[2B2025-04-29 06:19:53.863Z: [2A[2K
+1970c0bf698e: Extracting  120.9MB/241MB
+[2B2025-04-29 06:19:53.969Z: [2A2025-04-29 06:19:53.970Z: [2K
+1970c0bf698e: Extracting  122.6MB/241MB
+[2B2025-04-29 06:19:54.090Z: [2A[2K
+1970c0bf698e: Extracting  124.2MB/241MB
+[2B2025-04-29 06:19:54.191Z: [2A[2K
+1970c0bf698e: 2025-04-29 06:19:54.191Z: Extracting    132MB/241MB
+[2B2025-04-29 06:19:54.295Z: [2A[2K
+1970c0bf698e: Extracting  138.7MB/241MB
+[2B2025-04-29 06:19:54.396Z: [2A[2K
+1970c0bf698e: Extracting  145.9MB/241MB
+[2B2025-04-29 06:19:54.498Z: [2A[2K
+1970c0bf698e: Extracting  153.2MB/241MB
+2025-04-29 06:19:54.499Z: [2B2025-04-29 06:19:54.603Z: [2A[2K
+1970c0bf698e: Extracting  159.3MB/241MB
+[2B2025-04-29 06:19:54.709Z: [2A[2K
+2025-04-29 06:19:54.709Z: 1970c0bf698e: Extracting  167.1MB/241MB
+[2B2025-04-29 06:19:54.817Z: [2A[2K
+1970c0bf698e: Extracting  172.1MB/241MB
+[2B2025-04-29 06:19:54.923Z: [2A[2K2025-04-29 06:19:54.923Z: 
+1970c0bf698e: Extracting  180.5MB/241MB
+[2B2025-04-29 06:19:55.023Z: [2A[2K
+1970c0bf698e: Extracting  187.2MB/241MB
+[2B2025-04-29 06:19:55.128Z: [2A[2K
+1970c0bf698e: Extracting    195MB/241MB
+[2B2025-04-29 06:19:55.231Z: [2A2025-04-29 06:19:55.231Z: [2K2025-04-29 06:19:55.232Z: 
+1970c0bf698e: Extracting  201.7MB/241MB
+[2B2025-04-29 06:19:55.383Z: [2A2025-04-29 06:19:55.388Z: [2K
+1970c0bf698e: Extracting    205MB/241MB
+[2B2025-04-29 06:19:55.498Z: [2A2025-04-29 06:19:55.498Z: [2K
+1970c0bf698e: Extracting  207.2MB/241MB
+[2B2025-04-29 06:19:55.600Z: [2A2025-04-29 06:19:55.600Z: [2K
+1970c0bf698e: Extracting  209.5MB/241MB
+[2B2025-04-29 06:19:55.702Z: [2A[2K
+1970c0bf698e: Extracting  213.9MB/241MB
+[2B2025-04-29 06:19:55.839Z: [2A2025-04-29 06:19:55.845Z: [2K
+1970c0bf698e: Extracting  217.3MB/241MB
+[2B2025-04-29 06:19:55.943Z: [2A[2K
+1970c0bf698e: Extracting  218.9MB/241MB
+[2B2025-04-29 06:19:56.049Z: [2A[2K2025-04-29 06:19:56.049Z: 
+1970c0bf698e: Extracting  223.9MB/241MB
+[2B2025-04-29 06:19:56.153Z: [2A2025-04-29 06:19:56.153Z: [2K
+1970c0bf698e: 2025-04-29 06:19:56.155Z: Extracting    229MB/241MB
+[2B2025-04-29 06:19:58.441Z: [2A2025-04-29 06:19:58.441Z: [2K
+1970c0bf698e: Extracting  229.5MB/241MB
+[2B2025-04-29 06:19:58.579Z: [2A[2K
+1970c0bf698e: Extracting  230.6MB/241MB
+[2B2025-04-29 06:19:58.686Z: [2A[2K2025-04-29 06:19:58.687Z: 
+1970c0bf698e: Extracting  231.7MB/241MB
+[2B2025-04-29 06:19:58.876Z: [2A[2K
+1970c0bf698e: 2025-04-29 06:19:58.878Z: Extracting  232.8MB/241MB
+[2B2025-04-29 06:19:59.021Z: [2A2025-04-29 06:19:59.024Z: [2K
+1970c0bf698e: Extracting    234MB/241MB
+[2B2025-04-29 06:19:59.200Z: [2A[2K
+1970c0bf698e: Extracting  234.5MB/241MB
+[2B2025-04-29 06:19:59.306Z: [2A[2K
+1970c0bf698e: Extracting  235.6MB/241MB
+[2B2025-04-29 06:19:59.456Z: [2A[2K
+1970c0bf698e: Extracting  236.2MB/241MB
+[2B2025-04-29 06:19:59.599Z: [2A[2K
+1970c0bf698e: Extracting  236.7MB/241MB
+[2B2025-04-29 06:19:59.703Z: [2A[2K
+1970c0bf698e: 2025-04-29 06:19:59.704Z: Extracting  237.9MB/241MB
+[2B2025-04-29 06:19:59.940Z: [2A[2K
+1970c0bf698e: Extracting  238.4MB/241MB
+[2B2025-04-29 06:20:05.354Z: [2A[2K
+1970c0bf698e: Extracting    239MB/241MB
+[2B2025-04-29 06:20:05.364Z: [2A2025-04-29 06:20:05.365Z: [2K
+1970c0bf698e: Extracting    241MB/241MB
+[2B2025-04-29 06:20:05.487Z: [2A[2K2025-04-29 06:20:05.487Z: 
+1970c0bf698e: Pull complete 
+[2B2025-04-29 06:20:05.514Z: [1A[2K2025-04-29 06:20:05.515Z: 
+0206d75c2b7e: Extracting  458.8kB/44.3MB
+[1B2025-04-29 06:20:05.615Z: [1A[2K
+0206d75c2b7e: Extracting  2.753MB/44.3MB
+[1B2025-04-29 06:20:05.766Z: [1A[2K
+0206d75c2b7e: Extracting  5.046MB/44.3MB
+[1B2025-04-29 06:20:05.888Z: [1A[2K
+0206d75c2b7e: Extracting  5.505MB/44.3MB
+[1B2025-04-29 06:20:05.995Z: [1A[2K
+0206d75c2b7e: Extracting  8.258MB/44.3MB
+2025-04-29 06:20:05.997Z: [1B2025-04-29 06:20:06.123Z: [1A[2K
+2025-04-29 06:20:06.123Z: 0206d75c2b7e: 2025-04-29 06:20:06.123Z: Extracting  11.93MB/44.3MB
+[1B2025-04-29 06:20:06.322Z: [1A2025-04-29 06:20:06.323Z: [2K
+0206d75c2b7e: Extracting  12.85MB/44.3MB
+[1B2025-04-29 06:20:06.428Z: [1A[2K
+0206d75c2b7e: Extracting   15.6MB/44.3MB
+[1B2025-04-29 06:20:06.532Z: [1A[2K
+2025-04-29 06:20:06.532Z: 0206d75c2b7e: Extracting  21.56MB/44.3MB
+[1B2025-04-29 06:20:06.640Z: [1A[2K2025-04-29 06:20:06.641Z: 
+0206d75c2b7e: Extracting  27.53MB/44.3MB
+[1B2025-04-29 06:20:06.847Z: [1A[2K
+0206d75c2b7e: Extracting  29.82MB/44.3MB
+[1B2025-04-29 06:20:06.990Z: [1A[2K
+0206d75c2b7e: Extracting  30.74MB/44.3MB
+[1B2025-04-29 06:20:07.210Z: [1A[2K
+0206d75c2b7e: Extracting  31.65MB/44.3MB
+[1B2025-04-29 06:20:07.310Z: [1A2025-04-29 06:20:07.311Z: [2K
+0206d75c2b7e: Extracting  32.11MB/44.3MB
+[1B2025-04-29 06:20:07.425Z: [1A[2K
+0206d75c2b7e: Extracting  33.03MB/44.3MB
+[1B2025-04-29 06:20:07.529Z: [1A2025-04-29 06:20:07.529Z: [2K
+0206d75c2b7e: Extracting  34.41MB/44.3MB
+[1B2025-04-29 06:20:07.701Z: [1A[2K
+0206d75c2b7e: Extracting   36.7MB/44.3MB
+[1B2025-04-29 06:20:07.817Z: [1A2025-04-29 06:20:07.818Z: [2K
+0206d75c2b7e: Extracting  39.45MB/44.3MB
+[1B2025-04-29 06:20:07.929Z: [1A2025-04-29 06:20:07.930Z: [2K
+0206d75c2b7e: Extracting  40.37MB/44.3MB
+[1B2025-04-29 06:20:08.056Z: [1A2025-04-29 06:20:08.056Z: [2K
+0206d75c2b7e: Extracting  41.29MB/44.3MB
+[1B2025-04-29 06:20:08.245Z: [1A[2K
+0206d75c2b7e: Extracting  42.21MB/44.3MB
+[1B2025-04-29 06:20:08.262Z: [1A[2K
+0206d75c2b7e: Extracting   44.3MB/44.3MB
+[1B2025-04-29 06:20:09.756Z: [1A2025-04-29 06:20:09.756Z: [2K
+0206d75c2b7e: Pull complete 
+[1B2025-04-29 06:20:09.771Z: Digest: sha256:c491a00b11af140c82daaff23289d4cfccafaf2307d6880eedd49dae20c646e7
+2025-04-29 06:20:09.775Z: Status: Downloaded newer image for mcr.microsoft.com/devcontainers/base:alpine
+2025-04-29 06:20:09.928Z: Container started
+2025-04-29 06:20:10.122Z: Outcome: success User: vscode WorkspaceFolder: /workspaces/my-poker-tutor
+2025-04-29 06:20:10.128Z: devcontainer process exited with exit code 0
+
+=================================================================================
+2025-04-29 06:20:10.626Z: Running blocking commands...
+2025-04-29 06:20:10.684Z: $ devcontainer up --id-label Type=codespaces --workspace-folder /var/lib/docker/codespacemount/workspace/my-poker-tutor --mount type=bind,source=/.codespaces/agent/mount/cache,target=/vscode --user-data-folder /var/lib/docker/codespacemount/.persistedshare --container-data-folder .vscode-remote/data/Machine --container-system-data-folder /var/vscode-remote --log-level trace --log-format json --update-remote-user-uid-default never --mount-workspace-git-root false --omit-config-remote-env-from-metadata --skip-non-blocking-commands --expect-existing-container --config "/var/lib/docker/codespacemount/workspace/my-poker-tutor/.devcontainer/devcontainer.json" --override-config /root/.codespaces/shared/merged_devcontainer.json --default-user-env-probe loginInteractiveShell --container-session-data-folder /workspaces/.codespaces/.persistedshare/devcontainers-cli/cache --secrets-file /root/.codespaces/shared/user-secrets-envs.json
+2025-04-29 06:20:10.984Z: @devcontainers/cli 0.68.0. Node.js v18.20.8. linux 6.8.0-1026-azure x64.
+2025-04-29 06:20:11.366Z: Outcome: success User: vscode WorkspaceFolder: /workspaces/my-poker-tutor
+2025-04-29 06:20:11.375Z: devcontainer process exited with exit code 0
+
+=================================================================================
+2025-04-29 06:20:11.391Z: Configuring codespace...
+
+=================================================================================
+2025-04-29 06:20:11.392Z: Finished configuring codespace.
