@@ -33,6 +33,14 @@ class TestPokerEngine(unittest.TestCase):
         self.assertEqual(eng.stage, "complete")
         self.assertEqual(sum(eng.stacks), 300)
 
+        # history should contain one hand with recorded actions
+        self.assertEqual(len(eng.hand_histories), 1)
+        history = eng.hand_histories[0]
+        self.assertIn("winners", history)
+        self.assertIn("actions", history)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
