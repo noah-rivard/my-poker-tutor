@@ -29,6 +29,7 @@ class PokerEngine:
         self.turn = 0
         self.last_raiser = None
 
+
         # hand histories
         self.hand_histories = []
         self._current_history = None
@@ -47,6 +48,7 @@ class PokerEngine:
         self.stage = "preflop"
         self.last_raiser = self.bb
 
+
         # set up history for this hand
         self._current_history = {
             "button": self.button,
@@ -64,6 +66,7 @@ class PokerEngine:
         self.contributions[self.sb] = self.sb_amt
         self.contributions[self.bb] = self.bb_amt
         self.pot = self.sb_amt + self.bb_amt
+
 
         self._current_history["actions"].append(
             {"player": self.sb, "action": "blind", "amount": self.sb_amt, "stage": "preflop"}
@@ -108,11 +111,13 @@ class PokerEngine:
 
         if action == "fold":
             self.active[player] = False
+
             event_amount = 0
         elif action == "check":
             if self.contributions[player] != self.current_bet:
                 raise ValueError("Cannot check when facing a bet")
             event_amount = 0
+
 
         elif action == "check":
             if self.contributions[player] != self.current_bet:
@@ -122,7 +127,9 @@ class PokerEngine:
             self.stacks[player] -= to_call
             self.contributions[player] += to_call
             self.pot += to_call
+
             event_amount = to_call
+
 
         elif action == "bet":
             if self.current_bet != self.contributions[player]:
@@ -132,7 +139,9 @@ class PokerEngine:
             self.contributions[player] += amount
             self.pot += amount
             self.last_raiser = player
+
             event_amount = amount
+
 
         elif action == "raise":
             to_call = self.current_bet - self.contributions[player]
@@ -141,6 +150,7 @@ class PokerEngine:
             self.pot += to_call + amount
             self.current_bet = self.contributions[player]
             self.last_raiser = player
+
             event_amount = to_call + amount
         else:
             raise ValueError(f"Unknown action: {action}")
@@ -154,7 +164,6 @@ class PokerEngine:
                     "stage": self.stage,
                 }
             )
-
 
         else:
             raise ValueError(f"Unknown action: {action}")
@@ -197,6 +206,7 @@ class PokerEngine:
         if self.stage == "preflop":
             self.deal_flop()
             self.stage = "flop"
+
 
             if self._current_history is not None:
                 self._current_history["community"] = self.community.copy()
