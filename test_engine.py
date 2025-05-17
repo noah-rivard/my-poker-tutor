@@ -36,6 +36,7 @@ class TestPokerEngine(unittest.TestCase):
         self.assertEqual(len(eng.hand_histories), 1)
         history = eng.hand_histories[0]
         self.assertIn("winners", history)
+        self.assertIsInstance(history["winners"], list)
         self.assertIn("actions", history)
 
     def test_fold_to_single_player(self):
@@ -50,6 +51,16 @@ class TestPokerEngine(unittest.TestCase):
     def test_engine_from_config(self):
         import json
         from config import engine_from_config
+
+    def test_side_pot(self):
+        eng = PokerEngine(num_players=2, starting_stack=5, sb_amt=1, bb_amt=2)
+        eng.new_hand()
+
+        # seat 0 raises all-in preflop
+        eng.player_action("raise", 3)  # call 2 + raise 3 -> total 5
+        eng.player_action("call")  # seat 1 calls remaining 3
+        self.assertEqual(eng.stage, "complete")
+        self.assertEqual(sum(eng.stacks), 10)
 
         path = "temp_config.json"
         with open(path, "w", encoding="utf-8") as fh:
