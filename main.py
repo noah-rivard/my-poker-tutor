@@ -2,7 +2,8 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QVBoxLayout, QGridLayout, QHBoxLayout,
-    QPushButton, QLabel, QFrame
+    QPushButton, QLabel, QFrame, QComboBox,
+    QSpinBox, QSlider
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QColor, QFont
@@ -48,6 +49,7 @@ class SeatWidget(QWidget):
         layout = QVBoxLayout(self)
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
+        self.bet_label = QLabel("Bet: 0")
         cards_layout = QHBoxLayout()
         self.card1 = CardWidget()
         self.card2 = CardWidget()
@@ -56,9 +58,13 @@ class SeatWidget(QWidget):
         layout.addWidget(self.info_label, alignment=Qt.AlignCenter)
         layout.addLayout(cards_layout)
         layout.addWidget(self.stack_label, alignment=Qt.AlignCenter)
+        layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
 
     def setStack(self, stack):
         self.stack_label.setText(f"Stack: {stack}")
+
+    def setBet(self, amount):
+        self.bet_label.setText(f"Bet: {amount}")
 
     def setCards(self, cards):
         if cards:
@@ -117,42 +123,121 @@ class MainWindow(QMainWindow):
         self.community = CommunityWidget()
         grid.addWidget(self.community, 1, 1)
 
-        # control button
+        # pot display
+        self.pot_label = QLabel("Pot: 0")
+        vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
+
+        # seat/buy-in controls
+        ctrl_top = QHBoxLayout()
+        ctrl_top.addWidget(QLabel("Seat:"))
+        self.seat_combo = QComboBox()
+        self.seat_combo.addItems([str(i) for i in range(self.engine.num_players)])
+        ctrl_top.addWidget(self.seat_combo)
+        ctrl_top.addWidget(QLabel("Buy-in:"))
+        self.buyin_spin = QSpinBox()
+        self.buyin_spin.setRange(100, 10000)
+        self.buyin_spin.setValue(self.engine.starting_stack)
+        ctrl_top.addWidget(self.buyin_spin)
+        self.join_button = QPushButton("Join")
+        self.join_button.clicked.connect(self.join_game)
+        ctrl_top.addWidget(self.join_button)
+        ctrl_top.addWidget(QLabel("Rebuy:"))
+        self.rebuy_spin = QSpinBox()
+        self.rebuy_spin.setRange(100, 10000)
+        ctrl_top.addWidget(self.rebuy_spin)
+        self.rebuy_button = QPushButton("Rebuy")
+        self.rebuy_button.clicked.connect(self.rebuy)
+        ctrl_top.addWidget(self.rebuy_button)
+        ctrl_top.addWidget(QLabel("Bot Speed:"))
+        self.bot_speed = QSlider(Qt.Horizontal)
+        self.bot_speed.setRange(1, 5)
+        ctrl_top.addWidget(self.bot_speed)
+        vbox.addLayout(ctrl_top)
+
+        # action controls
+        action_layout = QHBoxLayout()
+        self.fold_btn = QPushButton("Fold")
+        self.fold_btn.clicked.connect(lambda: self.player_action("fold"))
+        self.call_btn = QPushButton("Call/Check")
+        self.call_btn.clicked.connect(lambda: self.player_action("call"))
+        self.bet_spin = QSpinBox()
+        self.bet_spin.setRange(1, 10000)
+        self.bet_btn = QPushButton("Bet/Raise")
+        self.bet_btn.clicked.connect(lambda: self.player_action("bet"))
+        action_layout.addWidget(self.fold_btn)
+        action_layout.addWidget(self.call_btn)
+        action_layout.addWidget(self.bet_spin)
+        action_layout.addWidget(self.bet_btn)
+        vbox.addLayout(action_layout)
+
+        # control button to start new hand
         self.button = QPushButton("Deal")
         self.button.clicked.connect(self.on_button)
         vbox.addWidget(self.button, alignment=Qt.AlignCenter)
 
+        self.player_seat = 0
+
+    def join_game(self):
+        self.player_seat = int(self.seat_combo.currentText())
+        self.engine.stacks[self.player_seat] = self.buyin_spin.value()
+        self.seat_combo.setDisabled(True)
+        self.join_button.setDisabled(True)
+        self.update_display()
+
+    def rebuy(self):
+        self.engine.add_chips(self.player_seat, self.rebuy_spin.value())
+        self.update_display()
+
+    def player_action(self, action):
+        if self.stage == 0:
+            return
+        if action == "fold":
+            self.engine.player_action("fold")
+        elif action == "call":
+            if self.engine.contributions[self.player_seat] < self.engine.current_bet:
+                self.engine.player_action("call")
+            else:
+                self.engine.player_action("check")
+        elif action == "bet":
+            amt = self.bet_spin.value()
+            if self.engine.current_bet == self.engine.contributions[self.player_seat]:
+                self.engine.player_action("bet", amt)
+            else:
+                self.engine.player_action("raise", amt)
+        self.bot_action()
+        self.update_display()
+
+    def bot_action(self):
+        while self.engine.stage != "complete" and self.engine.turn != self.player_seat:
+            if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
+                self.engine.player_action("call")
+            else:
+                self.engine.player_action("check")
+
+    def update_display(self):
+        for i, seat in enumerate(self.seats):
+            seat.setStack(self.engine.stacks[i])
+            seat.setBet(self.engine.contributions[i])
+        self.community.setCards(self.engine.community)
+        self.pot_label.setText(f"Pot: {self.engine.pot}")
+
     def on_button(self):
         if self.stage == 0:
             holes = self.engine.new_hand()
-            # update seats
             for i, seat in enumerate(self.seats):
                 seat.highlight(False)
                 seat.setStack(self.engine.stacks[i])
+                seat.setBet(self.engine.contributions[i])
                 seat.setCards(holes.get(i))
             self.community.setCards([])
-            self.button.setText("Flop")
+            self.pot_label.setText(f"Pot: {self.engine.pot}")
             self.stage = 1
-        elif self.stage == 1:
-            flop = self.engine.deal_flop()
-            self.community.setCards(flop)
-            self.button.setText("Turn")
-            self.stage = 2
-        elif self.stage == 2:
-            turn = self.engine.deal_turn()
-            self.community.setCards(turn)
-            self.button.setText("River")
-            self.stage = 3
-        elif self.stage == 3:
-            river = self.engine.deal_river()
-            self.community.setCards(river)
-            self.button.setText("Showdown")
-            self.stage = 4
-        elif self.stage == 4:
-            winners = self.engine.showdown()
+            self.bot_action()
+            self.update_display()
+        elif self.stage == 1 and self.engine.stage == "complete":
+            winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
             for i, seat in enumerate(self.seats):
                 seat.highlight(i in winners)
-                seat.setStack(self.engine.stacks[i])
             self.button.setText("Deal")
             self.stage = 0
 
