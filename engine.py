@@ -318,3 +318,7 @@ class PokerEngine:
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(self.hand_histories, fh)
 
+    def add_chips(self, player: int, amount: int) -> None:
+        """Add chips to a player's stack."""
+        self.stacks[player] += amount
+
