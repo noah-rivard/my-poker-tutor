@@ -33,6 +33,7 @@ class PokerEngine:
         self.hand_histories = []
         self._current_history = None
 
+
     def new_hand(self):
         """Start a new hand and reset all betting state."""
         self.button = (self.button + 1) % self.num_players
@@ -112,12 +113,17 @@ class PokerEngine:
             if self.contributions[player] != self.current_bet:
                 raise ValueError("Cannot check when facing a bet")
             event_amount = 0
+
+        elif action == "check":
+            if self.contributions[player] != self.current_bet:
+                raise ValueError("Cannot check when facing a bet")
         elif action == "call":
             to_call = self.current_bet - self.contributions[player]
             self.stacks[player] -= to_call
             self.contributions[player] += to_call
             self.pot += to_call
             event_amount = to_call
+
         elif action == "bet":
             if self.current_bet != self.contributions[player]:
                 raise ValueError("Cannot bet when facing a bet")
@@ -127,6 +133,7 @@ class PokerEngine:
             self.pot += amount
             self.last_raiser = player
             event_amount = amount
+
         elif action == "raise":
             to_call = self.current_bet - self.contributions[player]
             self.stacks[player] -= to_call + amount
@@ -147,6 +154,10 @@ class PokerEngine:
                     "stage": self.stage,
                 }
             )
+
+
+        else:
+            raise ValueError(f"Unknown action: {action}")
 
         self._next_player()
 
@@ -186,6 +197,7 @@ class PokerEngine:
         if self.stage == "preflop":
             self.deal_flop()
             self.stage = "flop"
+
             if self._current_history is not None:
                 self._current_history["community"] = self.community.copy()
         elif self.stage == "flop":
@@ -198,6 +210,14 @@ class PokerEngine:
             self.stage = "river"
             if self._current_history is not None:
                 self._current_history["community"] = self.community.copy()
+
+        elif self.stage == "flop":
+            self.deal_turn()
+            self.stage = "turn"
+        elif self.stage == "turn":
+            self.deal_river()
+            self.stage = "river"
+
         elif self.stage == "river":
             self.stage = "complete"
             self.showdown()
