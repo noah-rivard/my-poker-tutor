@@ -7,29 +7,28 @@ class TestPokerEngine(unittest.TestCase):
         eng = PokerEngine(num_players=3, starting_stack=100, sb_amt=1, bb_amt=2)
         eng.new_hand()
 
-        # pre-flop: all players call or check
-        eng.player_action("call")  # seat 0
-        eng.player_action("call")  # seat 1
-        eng.player_action("check")  # seat 2 (big blind)
+        # pre-flop actions until the engine moves to the flop
+        while eng.stage == "preflop":
+            if eng.turn == eng.bb:
+                eng.player_action("check")
+            else:
+                eng.player_action("call")
         self.assertEqual(eng.stage, "flop")
         self.assertEqual(eng.pot, 6)
 
-        # flop: everyone checks
-        eng.player_action("check")  # seat left of button
-        eng.player_action("check")
-        eng.player_action("check")
+        # flop
+        while eng.stage == "flop":
+            eng.player_action("check")
         self.assertEqual(eng.stage, "turn")
 
-        # turn: everyone checks
-        eng.player_action("check")
-        eng.player_action("check")
-        eng.player_action("check")
+        # turn
+        while eng.stage == "turn":
+            eng.player_action("check")
         self.assertEqual(eng.stage, "river")
 
-        # river: everyone checks -> hand complete
-        eng.player_action("check")
-        eng.player_action("check")
-        eng.player_action("check")
+        # river -> complete
+        while eng.stage == "river":
+            eng.player_action("check")
         self.assertEqual(eng.stage, "complete")
         self.assertEqual(sum(eng.stacks), 300)
 
@@ -39,6 +38,19 @@ class TestPokerEngine(unittest.TestCase):
         self.assertIn("winners", history)
         self.assertIsInstance(history["winners"], list)
         self.assertIn("actions", history)
+
+    def test_fold_to_single_player(self):
+        eng = PokerEngine(num_players=2, starting_stack=100, sb_amt=1, bb_amt=2)
+        eng.new_hand()
+
+        # small blind folds preflop, big blind should win the pot
+        eng.player_action("fold")
+        self.assertEqual(eng.stage, "complete")
+        self.assertEqual(eng.stacks[eng.bb], 101)
+
+    def test_engine_from_config(self):
+        import json
+        from config import engine_from_config
 
     def test_side_pot(self):
         eng = PokerEngine(num_players=2, starting_stack=5, sb_amt=1, bb_amt=2)
@@ -50,9 +62,20 @@ class TestPokerEngine(unittest.TestCase):
         self.assertEqual(eng.stage, "complete")
         self.assertEqual(sum(eng.stacks), 10)
 
+        path = "temp_config.json"
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(
+                {"num_players": 2, "starting_stack": 200, "sb_amt": 1, "bb_amt": 2}, fh
+            )
 
+        eng = engine_from_config(path)
+        self.assertEqual(eng.num_players, 2)
+        self.assertEqual(eng.starting_stack, 200)
+
+        import os
+
+        os.remove(path)
 
 
 if __name__ == "__main__":
     unittest.main()
-

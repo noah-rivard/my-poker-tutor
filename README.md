@@ -15,6 +15,25 @@ Run the simulation:
 python main.py
 ```
 
+The engine parameters can be customized with a JSON configuration file. A sample
+`config.json` is provided:
+
+```
+{
+  "num_players": 6,
+  "starting_stack": 1000,
+  "sb_amt": 10,
+  "bb_amt": 20
+}
+```
+
+You can create your own configuration and load it using:
+
+```
+from config import engine_from_config
+engine = engine_from_config("my_config.json")
+```
+
 
 Hand histories from each game can be saved with:
 ```
