@@ -3,6 +3,7 @@ engine.py
 
 Poker game engine for Texas Hold'em using pokerkit.
 """
+import json
 import random
 from pokerkit.utilities import Deck, Card as PKCard
 from pokerkit.hands import StandardHighHand
@@ -20,25 +21,191 @@ class PokerEngine:
         self.community = []
         self.pot = 0
 
+        # betting state
+        self.stage = None  # 'preflop', 'flop', 'turn', 'river', 'complete'
+        self.active = [True] * num_players
+        self.contributions = [0] * num_players
+        self.current_bet = 0
+        self.turn = 0
+        self.last_raiser = None
+
+        # hand histories
+        self.hand_histories = []
+        self._current_history = None
+
     def new_hand(self):
+        """Start a new hand and reset all betting state."""
         self.button = (self.button + 1) % self.num_players
         self.sb = (self.button + 1) % self.num_players
         self.bb = (self.sb + 1) % self.num_players
+
+        # reset state
+        self.active = [True] * self.num_players
+        self.contributions = [0] * self.num_players
+        self.current_bet = self.bb_amt
+        self.stage = "preflop"
+        self.last_raiser = self.bb
+
+        # set up history for this hand
+        self._current_history = {
+            "button": self.button,
+            "sb": self.sb,
+            "bb": self.bb,
+            "actions": [],
+            "hole_cards": {},
+            "community": [],
+            "starting_stacks": self.stacks.copy(),
+        }
+
         # post blinds
         self.stacks[self.sb] -= self.sb_amt
         self.stacks[self.bb] -= self.bb_amt
+        self.contributions[self.sb] = self.sb_amt
+        self.contributions[self.bb] = self.bb_amt
         self.pot = self.sb_amt + self.bb_amt
-        # shuffle deck
+
+        self._current_history["actions"].append(
+            {"player": self.sb, "action": "blind", "amount": self.sb_amt, "stage": "preflop"}
+        )
+        self._current_history["actions"].append(
+            {"player": self.bb, "action": "blind", "amount": self.bb_amt, "stage": "preflop"}
+        )
+
+        # shuffle and deal
         self.deck = list(Deck.STANDARD)
         random.shuffle(self.deck)
-        # deal hole cards
         self.hole_cards = {}
         for i in range(self.num_players):
             c1 = self.deck.pop()
             c2 = self.deck.pop()
-            self.hole_cards[i] = [self._card_to_tuple(c1), self._card_to_tuple(c2)]
+            cards = [self._card_to_tuple(c1), self._card_to_tuple(c2)]
+            self.hole_cards[i] = cards
+            self._current_history["hole_cards"][i] = cards
         self.community = []
+
+        # first player to act preflop
+        self.turn = (self.bb + 1) % self.num_players
         return self.hole_cards
+
+    # ------------------------------------------------------------------
+    # Betting logic
+    # ------------------------------------------------------------------
+    def player_action(self, action, amount=0):
+        """Apply an action for the current player.
+
+        Parameters
+        ----------
+        action : str
+            One of 'fold', 'check', 'call', 'bet', or 'raise'.
+        amount : int, optional
+            Additional chips for bet/raise actions.
+        """
+        player = self.turn
+
+        if not self.active[player]:
+            raise ValueError("Player already folded")
+
+        if action == "fold":
+            self.active[player] = False
+            event_amount = 0
+        elif action == "check":
+            if self.contributions[player] != self.current_bet:
+                raise ValueError("Cannot check when facing a bet")
+            event_amount = 0
+        elif action == "call":
+            to_call = self.current_bet - self.contributions[player]
+            self.stacks[player] -= to_call
+            self.contributions[player] += to_call
+            self.pot += to_call
+            event_amount = to_call
+        elif action == "bet":
+            if self.current_bet != self.contributions[player]:
+                raise ValueError("Cannot bet when facing a bet")
+            self.current_bet = self.contributions[player] + amount
+            self.stacks[player] -= amount
+            self.contributions[player] += amount
+            self.pot += amount
+            self.last_raiser = player
+            event_amount = amount
+        elif action == "raise":
+            to_call = self.current_bet - self.contributions[player]
+            self.stacks[player] -= to_call + amount
+            self.contributions[player] += to_call + amount
+            self.pot += to_call + amount
+            self.current_bet = self.contributions[player]
+            self.last_raiser = player
+            event_amount = to_call + amount
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+        if self._current_history is not None:
+            self._current_history["actions"].append(
+                {
+                    "player": player,
+                    "action": action,
+                    "amount": event_amount,
+                    "stage": self.stage,
+                }
+            )
+
+        self._next_player()
+
+    def _next_player(self):
+        """Advance to the next active player and progress rounds."""
+        if sum(self.active) == 1:
+            winner = next(i for i, a in enumerate(self.active) if a)
+            self.stacks[winner] += self.pot
+            self.stage = "complete"
+            return
+
+        start = self.turn
+        while True:
+            self.turn = (self.turn + 1) % self.num_players
+            if self.active[self.turn]:
+                break
+            if self.turn == start:
+                break
+
+        # determine if betting round is complete
+        round_complete = (
+            self.turn == self.last_raiser
+            and all(
+                not a or self.contributions[i] == self.current_bet
+                for i, a in enumerate(self.active)
+            )
+        )
+
+        if round_complete:
+            self._end_betting_round()
+
+    def _end_betting_round(self):
+        """Move to the next stage of the hand."""
+        self.contributions = [0] * self.num_players
+        self.current_bet = 0
+
+        if self.stage == "preflop":
+            self.deal_flop()
+            self.stage = "flop"
+            if self._current_history is not None:
+                self._current_history["community"] = self.community.copy()
+        elif self.stage == "flop":
+            self.deal_turn()
+            self.stage = "turn"
+            if self._current_history is not None:
+                self._current_history["community"] = self.community.copy()
+        elif self.stage == "turn":
+            self.deal_river()
+            self.stage = "river"
+            if self._current_history is not None:
+                self._current_history["community"] = self.community.copy()
+        elif self.stage == "river":
+            self.stage = "complete"
+            self.showdown()
+            return
+
+        # next round first player is seat left of button
+        self.turn = (self.button + 1) % self.num_players
+        self.last_raiser = self.turn
 
     def deal_flop(self):
         # burn
@@ -48,6 +215,8 @@ class PokerEngine:
         for _ in range(3):
             flop.append(self._card_to_tuple(self.deck.pop()))
         self.community = flop
+        if self._current_history is not None:
+            self._current_history["community"] = self.community.copy()
         return self.community
 
     def deal_turn(self):
@@ -55,6 +224,8 @@ class PokerEngine:
         self.deck.pop()
         # deal 1 board card
         self.community.append(self._card_to_tuple(self.deck.pop()))
+        if self._current_history is not None:
+            self._current_history["community"] = self.community.copy()
         return self.community
 
     def deal_river(self):
@@ -62,6 +233,8 @@ class PokerEngine:
         self.deck.pop()
         # deal 1 board card
         self.community.append(self._card_to_tuple(self.deck.pop()))
+        if self._current_history is not None:
+            self._current_history["community"] = self.community.copy()
         return self.community
 
     def showdown(self):
@@ -84,6 +257,12 @@ class PokerEngine:
         share = self.pot // len(winners) if winners else 0
         for i in winners:
             self.stacks[i] += share
+        if self._current_history is not None:
+            self._current_history["winners"] = winners
+            self._current_history["final_stacks"] = self.stacks.copy()
+            self._current_history["community"] = self.community.copy()
+            self.hand_histories.append(self._current_history)
+            self._current_history = None
         return winners
 
     def _card_to_tuple(self, card: PKCard):
@@ -103,3 +282,9 @@ class PokerEngine:
                     12: 'Q', 13: 'K', 14: 'A'}
         suit_map = {0: 'c', 1: 'd', 2: 'h', 3: 's'}
         return rank_map[card_tuple[0]] + suit_map[card_tuple[1]]
+
+    def save_histories(self, path):
+        """Persist recorded hand histories to a JSON file."""
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(self.hand_histories, fh)
+

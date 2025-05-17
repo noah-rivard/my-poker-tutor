@@ -14,3 +14,12 @@ Run the simulation:
 ```
 python main.py
 ```
+
+Hand histories from each game can be saved with:
+```
+from engine import PokerEngine
+eng = PokerEngine()
+eng.new_hand()
+... # play some actions
+eng.save_histories("hand_history.json")
+```
