@@ -25,6 +25,8 @@ class PokerEngine:
         self.stage = None  # 'preflop', 'flop', 'turn', 'river', 'complete'
         self.active = [True] * num_players
         self.contributions = [0] * num_players
+        self.total_contrib = [0] * num_players
+        self.all_in = [False] * num_players
         self.current_bet = 0
         self.turn = 0
         self.last_raiser = None
@@ -44,6 +46,8 @@ class PokerEngine:
         # reset state
         self.active = [True] * self.num_players
         self.contributions = [0] * self.num_players
+        self.total_contrib = [0] * self.num_players
+        self.all_in = [False] * self.num_players
         self.current_bet = self.bb_amt
         self.stage = "preflop"
         self.last_raiser = self.bb
@@ -65,7 +69,13 @@ class PokerEngine:
         self.stacks[self.bb] -= self.bb_amt
         self.contributions[self.sb] = self.sb_amt
         self.contributions[self.bb] = self.bb_amt
+        self.total_contrib[self.sb] = self.sb_amt
+        self.total_contrib[self.bb] = self.bb_amt
         self.pot = self.sb_amt + self.bb_amt
+        if self.stacks[self.sb] == 0:
+            self.all_in[self.sb] = True
+        if self.stacks[self.bb] == 0:
+            self.all_in[self.bb] = True
 
 
         self._current_history["actions"].append(
@@ -108,50 +118,61 @@ class PokerEngine:
 
         if not self.active[player]:
             raise ValueError("Player already folded")
+        if self.all_in[player]:
+            raise ValueError("Player is all-in and cannot act")
 
         if action == "fold":
             self.active[player] = False
-
             event_amount = 0
+
         elif action == "check":
             if self.contributions[player] != self.current_bet:
                 raise ValueError("Cannot check when facing a bet")
             event_amount = 0
 
-
-        elif action == "check":
-            if self.contributions[player] != self.current_bet:
-                raise ValueError("Cannot check when facing a bet")
         elif action == "call":
             to_call = self.current_bet - self.contributions[player]
-            self.stacks[player] -= to_call
-            self.contributions[player] += to_call
-            self.pot += to_call
-
-            event_amount = to_call
-
+            actual = min(to_call, self.stacks[player])
+            self.stacks[player] -= actual
+            self.contributions[player] += actual
+            self.total_contrib[player] += actual
+            self.pot += actual
+            event_amount = actual
+            if self.stacks[player] == 0:
+                self.all_in[player] = True
 
         elif action == "bet":
             if self.current_bet != self.contributions[player]:
                 raise ValueError("Cannot bet when facing a bet")
+            if amount <= 0:
+                raise ValueError("Bet amount must be positive")
+            if amount > self.stacks[player]:
+                amount = self.stacks[player]
             self.current_bet = self.contributions[player] + amount
             self.stacks[player] -= amount
             self.contributions[player] += amount
+            self.total_contrib[player] += amount
             self.pot += amount
             self.last_raiser = player
-
             event_amount = amount
-
+            if self.stacks[player] == 0:
+                self.all_in[player] = True
 
         elif action == "raise":
+            if amount <= 0:
+                raise ValueError("Raise amount must be positive")
             to_call = self.current_bet - self.contributions[player]
-            self.stacks[player] -= to_call + amount
-            self.contributions[player] += to_call + amount
-            self.pot += to_call + amount
+            raise_total = to_call + amount
+            actual = min(raise_total, self.stacks[player])
+            self.stacks[player] -= actual
+            self.contributions[player] += actual
+            self.total_contrib[player] += actual
+            self.pot += actual
             self.current_bet = self.contributions[player]
             self.last_raiser = player
-
-            event_amount = to_call + amount
+            event_amount = actual
+            if self.stacks[player] == 0:
+                self.all_in[player] = True
         else:
             raise ValueError(f"Unknown action: {action}")
 
@@ -165,9 +186,6 @@ class PokerEngine:
                 }
             )
 
-        else:
-            raise ValueError(f"Unknown action: {action}")
-
         self._next_player()
 
     def _next_player(self):
@@ -179,18 +197,26 @@ class PokerEngine:
             return
 
         start = self.turn
-        while True:
+        found = False
+        for _ in range(self.num_players):
             self.turn = (self.turn + 1) % self.num_players
-            if self.active[self.turn]:
+            if self.active[self.turn] and not self.all_in[self.turn]:
+                found = True
                 break
-            if self.turn == start:
-                break
+        if not found:
+            while self.stage != "river":
+                self._end_betting_round()
+            self.stage = "complete"
+            self.showdown()
+            return
 
         # determine if betting round is complete
         round_complete = (
             self.turn == self.last_raiser
             and all(
-                not a or self.contributions[i] == self.current_bet
+                not a
+                or self.contributions[i] == self.current_bet
+                or self.all_in[i]
                 for i, a in enumerate(self.active)
             )
         )
@@ -221,13 +247,6 @@ class PokerEngine:
             if self._current_history is not None:
                 self._current_history["community"] = self.community.copy()
 
-        elif self.stage == "flop":
-            self.deal_turn()
-            self.stage = "turn"
-        elif self.stage == "turn":
-            self.deal_river()
-            self.stage = "river"
-
         elif self.stage == "river":
             self.stage = "complete"
             self.showdown()
@@ -236,6 +255,21 @@ class PokerEngine:
         # next round first player is seat left of button
         self.turn = (self.button + 1) % self.num_players
         self.last_raiser = self.turn
+
+    def _compute_side_pots(self):
+        """Return list of side pots based on total contributions."""
+        contribs = [(amt, i) for i, amt in enumerate(self.total_contrib) if amt > 0]
+        contribs.sort()
+        pots = []
+        prev = 0
+        remaining = {i for _, i in contribs}
+        for amt, player in contribs:
+            if amt > prev:
+                participants = [p for p in remaining]
+                pots.append({"amount": (amt - prev) * len(participants), "players": participants.copy()})
+                prev = amt
+            remaining.remove(player)
+        return pots
 
     def deal_flop(self):
         # burn
@@ -268,32 +302,45 @@ class PokerEngine:
         return self.community
 
     def showdown(self):
-        best_hand = None
-        winners = []
-        # build board and hole card strings
         board_str = ''.join(self._tuple_to_str(c) for c in self.community)
+        hands = {}
         for i in range(self.num_players):
+            if not self.active[i] and not self.all_in[i]:
+                continue
             hole = self.hole_cards[i]
             hole_str = ''.join(self._tuple_to_str(c) for c in hole)
             hand = StandardHighHand.from_game_or_none(hole_str, board_str)
-            if hand is None:
+            if hand is not None:
+                hands[i] = hand
+
+        side_pots = self._compute_side_pots()
+        winners_record = []
+        for pot in side_pots:
+            eligible = [p for p in pot["players"] if p in hands]
+            if not eligible:
                 continue
-            if best_hand is None or hand > best_hand:
-                best_hand = hand
-                winners = [i]
-            elif hand == best_hand:
-                winners.append(i)
-        # distribute pot evenly
-        share = self.pot // len(winners) if winners else 0
-        for i in winners:
-            self.stacks[i] += share
+            best_hand = None
+            winners = []
+            for p in eligible:
+                h = hands[p]
+                if best_hand is None or h > best_hand:
+                    best_hand = h
+                    winners = [p]
+                elif h == best_hand:
+                    winners.append(p)
+            share = pot["amount"] // len(winners)
+            for w in winners:
+                self.stacks[w] += share
+            winners_record.append({"pot": pot["amount"], "winners": winners})
+
         if self._current_history is not None:
-            self._current_history["winners"] = winners
+            self._current_history["winners"] = winners_record
             self._current_history["final_stacks"] = self.stacks.copy()
             self._current_history["community"] = self.community.copy()
             self.hand_histories.append(self._current_history)
             self._current_history = None
-        return winners
+        self.pot = 0
+        return winners_record
 
     def _card_to_tuple(self, card: PKCard):
         # convert pokerkit Card to (rank_int, suit_int)
