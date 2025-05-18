@@ -201,6 +201,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Poker Simulation")
         self.engine = PokerEngine(num_players=6)
         self.stage = 0
+        self._auto_next = False
         central = QWidget()
         self.setCentralWidget(central)
         vbox = QVBoxLayout(central)
@@ -295,6 +296,60 @@ class MainWindow(QMainWindow):
 
         self._assign_random_seat()
 
+    def _start_hand(self) -> None:
+        """Deal a new hand and reset UI state."""
+        self._auto_next = False
+        self._assign_random_seat()
+        holes = self.engine.new_hand()
+        for i, seat in enumerate(self.seats):
+            seat.highlight(False)
+            seat.setStack(self.engine.stacks[i])
+            seat.setBet(self.engine.contributions[i])
+            seat.setTotal(self.engine.total_contrib[i])
+            seat.setCards(holes.get(i), face_down=not seat.is_player)
+            seat.set_turn(i == self.engine.turn)
+        self.community.setCards([])
+        self.pot_display.setText(f"Pot: {self.engine.pot}")
+        self.pot_label.setText(f"Pot: {self.engine.pot}")
+        self.stage = 1
+        self.history_box.clear()
+        self.last_action_index = 0
+        self.winners_displayed = False
+        self.update_display()
+        self.bot_action()
+
+    def _show_results(self) -> None:
+        """Reveal hole cards, highlight winners, and schedule the next hand."""
+        winners = (
+            self.engine.hand_histories[-1]["winners"]
+            if self.engine.hand_histories
+            else []
+        )
+        win_map = {}
+        for rec in winners:
+            share = rec.get("share", rec.get("pot", 0) // max(1, len(rec.get("winners", []))))
+            for w in rec.get("winners", []):
+                win_map[w] = win_map.get(w, 0) + share
+        win_set = set(win_map.keys())
+        for i, seat in enumerate(self.seats):
+            seat.setCards(self.engine.hole_cards.get(i))
+            seat.highlight(i in win_set)
+            seat.setTotal(self.engine.total_contrib[i])
+            seat.set_turn(False)
+
+        if win_set and not self.winners_displayed:
+            for seat_num in sorted(win_map):
+                amt = win_map[seat_num]
+                self.history_box.appendPlainText(
+                    f"Hand complete. Seat {seat_num} won {amt}"
+                )
+            self.winners_displayed = True
+        self.button.setText("Deal")
+        self.stage = 0
+        if not self._auto_next:
+            self._auto_next = True
+            QTimer.singleShot(2000, self._start_hand)
+
     def _assign_random_seat(self) -> None:
         """Assign the user to a random seat and update labels."""
         self.player_seat = random.randrange(self.engine.num_players)
@@ -355,6 +410,12 @@ class MainWindow(QMainWindow):
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self._update_action_controls()
         self.update_history()
+        if (
+            self.stage == 1
+            and self.engine.stage == "complete"
+            and not self._auto_next
+        ):
+            self._show_results()
 
     def _update_action_controls(self) -> None:
         """Enable or disable action buttons based on game state."""
@@ -447,52 +508,9 @@ class MainWindow(QMainWindow):
 
     def on_button(self):
         if self.stage == 0:
-            self._assign_random_seat()
-            holes = self.engine.new_hand()
-            for i, seat in enumerate(self.seats):
-                seat.highlight(False)
-                seat.setStack(self.engine.stacks[i])
-                seat.setBet(self.engine.contributions[i])
-                seat.setTotal(self.engine.total_contrib[i])
-                seat.setCards(holes.get(i))
-                seat.setCards(holes.get(i), face_down=not seat.is_player)
-                seat.set_turn(i == self.engine.turn)
-            self.community.setCards([])
-            self.pot_display.setText(f"Pot: {self.engine.pot}")
-            self.pot_label.setText(f"Pot: {self.engine.pot}")
-            self.stage = 1
-            self.history_box.clear()
-            self.last_action_index = 0
-            self.winners_displayed = False
-            self.update_display()
-            self.bot_action()
+            self._start_hand()
         elif self.stage == 1 and self.engine.stage == "complete":
-            winners = (
-                self.engine.hand_histories[-1]["winners"]
-                if self.engine.hand_histories
-                else []
-            )
-            win_map = {}
-            for rec in winners:
-                share = rec.get("share", rec.get("pot", 0) // max(1, len(rec.get("winners", []))))
-                for w in rec.get("winners", []):
-                    win_map[w] = win_map.get(w, 0) + share
-            win_set = set(win_map.keys())
-            for i, seat in enumerate(self.seats):
-                seat.setCards(self.engine.hole_cards.get(i))
-                seat.highlight(i in win_set)
-                seat.setTotal(self.engine.total_contrib[i])
-                seat.set_turn(False)
-
-            if win_set and not self.winners_displayed:
-                for seat_num in sorted(win_map):
-                    amt = win_map[seat_num]
-                    self.history_box.appendPlainText(
-                        f"Hand complete. Seat {seat_num} won {amt}"
-                    )
-                self.winners_displayed = True
-            self.button.setText("Deal")
-            self.stage = 0
+            self._show_results()
 
 
 if __name__ == "__main__":
