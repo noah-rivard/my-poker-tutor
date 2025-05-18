@@ -29,3 +29,15 @@ This document outlines a potential path to evolve **my-poker-tutor** into a full
 
 These steps provide a roadmap toward a more complete poker simulator with AI bots and analytics capabilities.
 
+6. **Bug Fixes Needed**
+   - The `SeatWidget` class defines `highlight` twice in `main.py`, so the
+     earlier implementation that updates `_winner` is overwritten. This prevents
+     the GUI from correctly highlighting winning seats.
+   - After a betting round ends in `PokerEngine._end_betting_round`, the `turn`
+     is always set to the seat left of the button without skipping folded or
+     all-in players. This can cause an exception on the next action.
+   - In `PokerEngine.player_action` handling of the `raise` action, a short
+     stack can specify a raise larger than their stack. The resulting partial
+     raise lowers `current_bet` to that player's contribution, leading to
+     inconsistent bet amounts.
+
