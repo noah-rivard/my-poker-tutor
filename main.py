@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QLabel,
     QFrame,
-    QComboBox,
     QSpinBox,
     QSlider,
     QPlainTextEdit,
@@ -17,6 +16,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap
 import os
+import random
 from engine import PokerEngine
 
 
@@ -183,20 +183,8 @@ class MainWindow(QMainWindow):
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
-        # seat/buy-in controls
+        # rebuy and bot controls
         ctrl_top = QHBoxLayout()
-        ctrl_top.addWidget(QLabel("Seat:"))
-        self.seat_combo = QComboBox()
-        self.seat_combo.addItems([str(i) for i in range(self.engine.num_players)])
-        ctrl_top.addWidget(self.seat_combo)
-        ctrl_top.addWidget(QLabel("Buy-in:"))
-        self.buyin_spin = QSpinBox()
-        self.buyin_spin.setRange(100, 10000)
-        self.buyin_spin.setValue(self.engine.starting_stack)
-        ctrl_top.addWidget(self.buyin_spin)
-        self.join_button = QPushButton("Join")
-        self.join_button.clicked.connect(self.join_game)
-        ctrl_top.addWidget(self.join_button)
         ctrl_top.addWidget(QLabel("Rebuy:"))
         self.rebuy_spin = QSpinBox()
         self.rebuy_spin.setRange(100, 10000)
@@ -259,16 +247,13 @@ class MainWindow(QMainWindow):
 
         self.last_action_index = 0
 
-        self.player_seat = 0
+        self._assign_random_seat()
 
-    def join_game(self):
-        self.player_seat = int(self.seat_combo.currentText())
-        self.engine.stacks[self.player_seat] = self.buyin_spin.value()
+    def _assign_random_seat(self) -> None:
+        """Assign the user to a random seat and update labels."""
+        self.player_seat = random.randrange(self.engine.num_players)
         for i, seat in enumerate(self.seats):
             seat.setPlayer(i == self.player_seat)
-        self.seat_combo.setDisabled(True)
-        self.join_button.setDisabled(True)
-        self.update_display()
 
     def rebuy(self):
         self.engine.add_chips(self.player_seat, self.rebuy_spin.value())
@@ -349,6 +334,7 @@ class MainWindow(QMainWindow):
 
     def on_button(self):
         if self.stage == 0:
+            self._assign_random_seat()
             holes = self.engine.new_hand()
             for i, seat in enumerate(self.seats):
                 seat.highlight(False)
