@@ -1,16 +1,17 @@
 """AI opponents using pokerkit equity calculations."""
 
 from concurrent.futures import ProcessPoolExecutor
-from typing import List, Iterable
+from typing import Iterable, List
 
 from pokerkit import calculate_equities, parse_range
-from pokerkit.utilities import Deck
 from pokerkit.hands import StandardHighHand
 from pokerkit.utilities import Card as PKCard
+from pokerkit.utilities import Deck
 
 
-def estimate_equity(ranges: Iterable[str], board_cards: Iterable[str] = (),
-                    sample_count: int = 1000) -> List[float]:
+def estimate_equity(
+    ranges: Iterable[str], board_cards: Iterable[str] = (), sample_count: int = 1000
+) -> List[float]:
     """Estimate player equities using Monte Carlo simulation.
 
     Parameters

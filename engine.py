@@ -3,10 +3,14 @@ engine.py
 
 Poker game engine for Texas Hold'em using pokerkit.
 """
+
 import json
 import random
-from pokerkit.utilities import Deck, Card as PKCard
+
 from pokerkit.hands import StandardHighHand
+from pokerkit.utilities import Card as PKCard
+from pokerkit.utilities import Deck
+
 
 class PokerEngine:
     def __init__(self, num_players=6, starting_stack=1000, sb_amt=10, bb_amt=20):
@@ -31,11 +35,9 @@ class PokerEngine:
         self.turn = 0
         self.last_raiser = None
 
-
         # hand histories
         self.hand_histories = []
         self._current_history = None
-
 
     def new_hand(self):
         """Start a new hand and reset all betting state."""
@@ -51,7 +53,6 @@ class PokerEngine:
         self.current_bet = self.bb_amt
         self.stage = "preflop"
         self.last_raiser = self.bb
-
 
         # set up history for this hand
         self._current_history = {
@@ -77,12 +78,21 @@ class PokerEngine:
         if self.stacks[self.bb] == 0:
             self.all_in[self.bb] = True
 
-
         self._current_history["actions"].append(
-            {"player": self.sb, "action": "blind", "amount": self.sb_amt, "stage": "preflop"}
+            {
+                "player": self.sb,
+                "action": "blind",
+                "amount": self.sb_amt,
+                "stage": "preflop",
+            }
         )
         self._current_history["actions"].append(
-            {"player": self.bb, "action": "blind", "amount": self.bb_amt, "stage": "preflop"}
+            {
+                "player": self.bb,
+                "action": "blind",
+                "amount": self.bb_amt,
+                "stage": "preflop",
+            }
         )
 
         # shuffle and deal
@@ -211,14 +221,9 @@ class PokerEngine:
             return
 
         # determine if betting round is complete
-        round_complete = (
-            self.turn == self.last_raiser
-            and all(
-                not a
-                or self.contributions[i] == self.current_bet
-                or self.all_in[i]
-                for i, a in enumerate(self.active)
-            )
+        round_complete = self.turn == self.last_raiser and all(
+            not a or self.contributions[i] == self.current_bet or self.all_in[i]
+            for i, a in enumerate(self.active)
         )
 
         if round_complete:
@@ -232,7 +237,6 @@ class PokerEngine:
         if self.stage == "preflop":
             self.deal_flop()
             self.stage = "flop"
-
 
             if self._current_history is not None:
                 self._current_history["community"] = self.community.copy()
@@ -266,7 +270,12 @@ class PokerEngine:
         for amt, player in contribs:
             if amt > prev:
                 participants = [p for p in remaining]
-                pots.append({"amount": (amt - prev) * len(participants), "players": participants.copy()})
+                pots.append(
+                    {
+                        "amount": (amt - prev) * len(participants),
+                        "players": participants.copy(),
+                    }
+                )
                 prev = amt
             remaining.remove(player)
         return pots
@@ -302,13 +311,13 @@ class PokerEngine:
         return self.community
 
     def showdown(self):
-        board_str = ''.join(self._tuple_to_str(c) for c in self.community)
+        board_str = "".join(self._tuple_to_str(c) for c in self.community)
         hands = {}
         for i in range(self.num_players):
             if not self.active[i] and not self.all_in[i]:
                 continue
             hole = self.hole_cards[i]
-            hole_str = ''.join(self._tuple_to_str(c) for c in hole)
+            hole_str = "".join(self._tuple_to_str(c) for c in hole)
             hand = StandardHighHand.from_game_or_none(hole_str, board_str)
             if hand is not None:
                 hands[i] = hand
@@ -344,20 +353,44 @@ class PokerEngine:
 
     def _card_to_tuple(self, card: PKCard):
         # convert pokerkit Card to (rank_int, suit_int)
-        rank_map = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6,
-                    '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11,
-                    'Q': 12, 'K': 13, 'A': 14}
-        suit_map = {'c': 0, 'd': 1, 'h': 2, 's': 3}
+        rank_map = {
+            "2": 2,
+            "3": 3,
+            "4": 4,
+            "5": 5,
+            "6": 6,
+            "7": 7,
+            "8": 8,
+            "9": 9,
+            "T": 10,
+            "J": 11,
+            "Q": 12,
+            "K": 13,
+            "A": 14,
+        }
+        suit_map = {"c": 0, "d": 1, "h": 2, "s": 3}
         rank_char = card.rank.value
         suit_char = card.suit.value
         return (rank_map[rank_char], suit_map[suit_char])
-    
+
     def _tuple_to_str(self, card_tuple):
         # convert (rank_int, suit_int) to card string like 'As'
-        rank_map = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6',
-                    7: '7', 8: '8', 9: '9', 10: 'T', 11: 'J',
-                    12: 'Q', 13: 'K', 14: 'A'}
-        suit_map = {0: 'c', 1: 'd', 2: 'h', 3: 's'}
+        rank_map = {
+            2: "2",
+            3: "3",
+            4: "4",
+            5: "5",
+            6: "6",
+            7: "7",
+            8: "8",
+            9: "9",
+            10: "T",
+            11: "J",
+            12: "Q",
+            13: "K",
+            14: "A",
+        }
+        suit_map = {0: "c", 1: "d", 2: "h", 3: "s"}
         return rank_map[card_tuple[0]] + suit_map[card_tuple[1]]
 
     def save_histories(self, path):
@@ -368,4 +401,3 @@ class PokerEngine:
     def add_chips(self, player: int, amount: int) -> None:
         """Add chips to a player's stack."""
         self.stacks[player] += amount
-

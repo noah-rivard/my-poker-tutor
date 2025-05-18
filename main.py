@@ -1,22 +1,13 @@
-import sys
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QGridLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
-    QFrame,
-    QSpinBox,
-    QSlider,
-    QPlainTextEdit,
-)
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap
 import os
 import random
+import sys
+
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QColor, QFont, QPainter, QPixmap
+from PyQt5.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
+                             QLabel, QMainWindow, QPlainTextEdit, QPushButton,
+                             QSlider, QSpinBox, QVBoxLayout, QWidget)
+
 from engine import PokerEngine
 
 
@@ -39,24 +30,37 @@ class CardWidget(QFrame):
     def paintEvent(self, event):
         painter = QPainter(self)
         rect = event.rect()
-        painter.fillRect(rect, QColor('white'))
-        painter.setPen(QColor('black'))
-        painter.drawRect(rect)
+        if self.card or self.face_down:
+            painter.fillRect(rect, QColor("white"))
+            painter.setPen(QColor("black"))
+            painter.drawRect(rect)
         if self.face_down:
             painter.drawPixmap(rect, self.back_image)
         elif self.card:
-            rank_map = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6',
-                        7: '7', 8: '8', 9: '9', 10: '10',
-                        11: 'J', 12: 'Q', 13: 'K', 14: 'A'}
-            suit_map = {0: '♣', 1: '♦', 2: '♥', 3: '♠'}
+            rank_map = {
+                2: "2",
+                3: "3",
+                4: "4",
+                5: "5",
+                6: "6",
+                7: "7",
+                8: "8",
+                9: "9",
+                10: "10",
+                11: "J",
+                12: "Q",
+                13: "K",
+                14: "A",
+            }
+            suit_map = {0: "♣", 1: "♦", 2: "♥", 3: "♠"}
             r_text = rank_map[self.card[0]]
             s_text = suit_map[self.card[1]]
             text = r_text + s_text
             if self.card[1] in (1, 2):
-                painter.setPen(QColor('red'))
+                painter.setPen(QColor("red"))
             else:
-                painter.setPen(QColor('black'))
-            painter.setFont(QFont('Arial', 14, QFont.Bold))
+                painter.setPen(QColor("black"))
+            painter.setFont(QFont("Arial", 14, QFont.Bold))
             painter.drawText(rect, Qt.AlignCenter, text)
 
 
@@ -111,7 +115,7 @@ class SeatWidget(QWidget):
     def set_turn(self, state: bool) -> None:
         self._turn = state
         self._apply_styles()
-        
+
     def highlight(self, state: bool) -> None:
         """Highlight this seat, typically for winning a hand."""
         self.is_highlighted = state
@@ -170,18 +174,23 @@ class MainWindow(QMainWindow):
 
         # create seats around the table
         self.seats = []
-        positions = [(0, 0), (0, 1), (0, 2),
-                     (2, 0), (2, 1), (2, 2)]
+        positions = [(0, 0), (0, 1), (0, 2), (2, 0), (2, 1), (2, 2)]
         for i, pos in enumerate(positions):
             seat = SeatWidget(i)
             grid.addWidget(seat, pos[0], pos[1])
             self.seats.append(seat)
 
-        # community cards at center
+        # community cards and pot display at center
+        center = QWidget()
+        center_layout = QVBoxLayout(center)
+        center_layout.setContentsMargins(0, 0, 0, 0)
         self.community = CommunityWidget()
-        grid.addWidget(self.community, 1, 1)
+        center_layout.addWidget(self.community, alignment=Qt.AlignCenter)
+        self.pot_display = QLabel("Pot: 0")
+        center_layout.addWidget(self.pot_display, alignment=Qt.AlignCenter)
+        grid.addWidget(center, 1, 1)
 
-        # pot display
+        # textual pot label below table
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
@@ -285,15 +294,19 @@ class MainWindow(QMainWindow):
                 self.engine.player_action("bet", amt)
             else:
                 self.engine.player_action("raise", amt)
-        self.bot_action()
         self.update_display()
+        self.bot_action()
 
     def bot_action(self):
-        while self.engine.stage != "complete" and self.engine.turn != self.player_seat:
-            if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
-                self.engine.player_action("call")
-            else:
-                self.engine.player_action("check")
+        if self.engine.stage == "complete" or self.engine.turn == self.player_seat:
+            return
+        if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
+            self.engine.player_action("call")
+        else:
+            self.engine.player_action("check")
+        self.update_display()
+        delay = 1000 // max(1, self.bot_speed.value())
+        QTimer.singleShot(delay, self.bot_action)
 
     def update_display(self):
         for i, seat in enumerate(self.seats):
@@ -305,6 +318,7 @@ class MainWindow(QMainWindow):
                 and i == self.engine.turn
             )
         self.community.setCards(self.engine.community)
+        self.pot_display.setText(f"Pot: {self.engine.pot}")
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self.update_history()
 
@@ -313,7 +327,7 @@ class MainWindow(QMainWindow):
         if not hist:
             return
         actions = hist.get("actions", [])
-        for action in actions[self.last_action_index:]:
+        for action in actions[self.last_action_index :]:
             player = action.get("player")
             act = action.get("action")
             amt = action.get("amount", 0)
@@ -346,14 +360,19 @@ class MainWindow(QMainWindow):
                 seat.setCards(holes.get(i), face_down=not seat.is_player)
                 seat.set_turn(i == self.engine.turn)
             self.community.setCards([])
+            self.pot_display.setText(f"Pot: {self.engine.pot}")
             self.pot_label.setText(f"Pot: {self.engine.pot}")
             self.stage = 1
             self.history_box.clear()
             self.last_action_index = 0
-            self.bot_action()
             self.update_display()
+            self.bot_action()
         elif self.stage == 1 and self.engine.stage == "complete":
-            winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
+            winners = (
+                self.engine.hand_histories[-1]["winners"]
+                if self.engine.hand_histories
+                else []
+            )
             win_set = set()
             for rec in winners:
                 win_set.update(rec.get("winners", []))
