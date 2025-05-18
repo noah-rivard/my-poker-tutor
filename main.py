@@ -21,7 +21,11 @@ from PyQt5.QtWidgets import (
 )
 
 from engine import PokerEngine
-from ai import estimate_equity_vs_random, estimate_hand_strength
+from ai import (
+    estimate_equity_vs_random,
+    estimate_hand_strength,
+    basic_ai_decision,
+)
 
 
 class CardWidget(QFrame):
@@ -381,10 +385,8 @@ class MainWindow(QMainWindow):
     def bot_action(self):
         if self.engine.stage == "complete" or self.engine.turn == self.player_seat:
             return
-        if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
-            self.engine.player_action("call")
-        else:
-            self.engine.player_action("check")
+        action, amount = basic_ai_decision(self.engine, self.engine.turn)
+        self.engine.player_action(action, amount)
         self.update_display()
         QTimer.singleShot(1000, self.bot_action)
 

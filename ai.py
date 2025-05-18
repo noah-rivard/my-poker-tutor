@@ -1,7 +1,10 @@
 """Helper utilities for AI calculations using PokerKit."""
 
 from concurrent.futures import ProcessPoolExecutor
-from typing import Iterable, List
+import random
+from typing import Iterable, List, Tuple
+
+from engine import PokerEngine
 
 
 from pokerkit import (
@@ -102,3 +105,52 @@ def estimate_hand_strength(
         )
 
     return strength
+
+
+def basic_ai_decision(
+    engine: PokerEngine,
+    seat: int,
+    rng: random.Random | None = None,
+    sample_count: int = 200,
+) -> Tuple[str, int]:
+    """Choose a simple action for the bot at ``seat``.
+
+    The decision is based on a quick Monte Carlo equity estimate.
+    """
+
+    rng = rng or random
+
+    hole = engine.hole_cards.get(seat)
+    if not hole:
+        return "check", 0
+
+    hole_strs = [engine._tuple_to_str(c) for c in hole]
+    board_strs = [engine._tuple_to_str(c) for c in engine.community]
+    player_count = sum(engine.active)
+
+    try:
+        strength = estimate_hand_strength(
+            hole_strs,
+            board_strs,
+            player_count,
+            sample_count=sample_count,
+        )
+    except Exception:
+        strength = 0.5
+
+    to_call = engine.current_bet - engine.contributions[seat]
+    facing_bet = to_call > 0
+
+    if facing_bet:
+        if strength < 0.2:
+            return ("fold", 0) if rng.random() < 0.8 else ("call", 0)
+        if strength < 0.5:
+            return "call", 0
+        if strength < 0.75:
+            return ("raise", engine.bb_amt * 2) if rng.random() < 0.3 else ("call", 0)
+        return ("raise", engine.bb_amt * 3) if rng.random() < 0.7 else ("call", 0)
+
+    if strength > 0.6 and rng.random() < 0.6:
+        return "bet", engine.bb_amt * 2
+    return "check", 0
+
