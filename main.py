@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QSlider,
     QPlainTextEdit,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap
 import os
 import random
@@ -39,9 +39,10 @@ class CardWidget(QFrame):
     def paintEvent(self, event):
         painter = QPainter(self)
         rect = event.rect()
-        painter.fillRect(rect, QColor('white'))
-        painter.setPen(QColor('black'))
-        painter.drawRect(rect)
+        if self.card or self.face_down:
+            painter.fillRect(rect, QColor('white'))
+            painter.setPen(QColor('black'))
+            painter.drawRect(rect)
         if self.face_down:
             painter.drawPixmap(rect, self.back_image)
         elif self.card:
@@ -72,6 +73,7 @@ class SeatWidget(QWidget):
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
         self.bet_label = QLabel("Bet: 0")
+        self.total_label = QLabel("Total: 0")
         cards_layout = QHBoxLayout()
         self.card1 = CardWidget()
         self.card2 = CardWidget()
@@ -81,6 +83,7 @@ class SeatWidget(QWidget):
         layout.addLayout(cards_layout)
         layout.addWidget(self.stack_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
+        layout.addWidget(self.total_label, alignment=Qt.AlignCenter)
 
     def _apply_styles(self):
         parts = []
@@ -95,6 +98,9 @@ class SeatWidget(QWidget):
 
     def setBet(self, amount):
         self.bet_label.setText(f"Bet: {amount}")
+
+    def setTotal(self, amount: int) -> None:
+        self.total_label.setText(f"Total: {amount}")
 
     def setCards(self, cards, face_down=False):
         if cards:
@@ -152,6 +158,7 @@ class CommunityWidget(QWidget):
                 self.cards[i].setCard(None)
 
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -181,7 +188,7 @@ class MainWindow(QMainWindow):
         self.community = CommunityWidget()
         grid.addWidget(self.community, 1, 1)
 
-        # pot display
+        # textual pot label below table
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
@@ -285,20 +292,25 @@ class MainWindow(QMainWindow):
                 self.engine.player_action("bet", amt)
             else:
                 self.engine.player_action("raise", amt)
-        self.bot_action()
         self.update_display()
+        self.bot_action()
 
     def bot_action(self):
-        while self.engine.stage != "complete" and self.engine.turn != self.player_seat:
-            if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
-                self.engine.player_action("call")
-            else:
-                self.engine.player_action("check")
+        if self.engine.stage == "complete" or self.engine.turn == self.player_seat:
+            return
+        if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
+            self.engine.player_action("call")
+        else:
+            self.engine.player_action("check")
+        self.update_display()
+        delay = 1000 // max(1, self.bot_speed.value())
+        QTimer.singleShot(delay, self.bot_action)
 
     def update_display(self):
         for i, seat in enumerate(self.seats):
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
+            seat.setTotal(self.engine.total_contrib[i])
             seat.set_turn(
                 self.stage == 1
                 and self.engine.stage != "complete"
@@ -342,6 +354,7 @@ class MainWindow(QMainWindow):
                 seat.highlight(False)
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
+                seat.setTotal(self.engine.total_contrib[i])
                 seat.setCards(holes.get(i))
                 seat.setCards(holes.get(i), face_down=not seat.is_player)
                 seat.set_turn(i == self.engine.turn)
@@ -350,8 +363,8 @@ class MainWindow(QMainWindow):
             self.stage = 1
             self.history_box.clear()
             self.last_action_index = 0
-            self.bot_action()
             self.update_display()
+            self.bot_action()
         elif self.stage == 1 and self.engine.stage == "complete":
             winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
             win_set = set()
@@ -361,6 +374,7 @@ class MainWindow(QMainWindow):
                 seat.setCards(self.engine.hole_cards.get(i))
 
                 seat.highlight(i in win_set)
+                seat.setTotal(self.engine.total_contrib[i])
             if win_set:
                 winner_seats = ", ".join(str(s) for s in sorted(win_set))
                 self.history_box.appendPlainText(
