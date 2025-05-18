@@ -7,9 +7,9 @@ Poker game engine for Texas Hold'em using pokerkit.
 import json
 import random
 
-from pokerkit.hands import StandardHighHand
-from pokerkit.utilities import Card as PKCard
-from pokerkit.utilities import Deck
+from pokerkit.pokerkit.hands import StandardHighHand
+from pokerkit.pokerkit.utilities import Card as PKCard
+from pokerkit.pokerkit.utilities import Deck
 
 
 class PokerEngine:
@@ -225,7 +225,6 @@ class PokerEngine:
             self.stage = "complete"
             return
 
-        start = self.turn
         found = False
         for _ in range(self.num_players):
             self.turn = (self.turn + 1) % self.num_players
