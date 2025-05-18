@@ -193,6 +193,14 @@ class PokerEngine:
         if sum(self.active) == 1:
             winner = next(i for i, a in enumerate(self.active) if a)
             self.stacks[winner] += self.pot
+            if self._current_history is not None:
+                winners_record = [{"pot": self.pot, "winners": [winner], "share": self.pot}]
+                self._current_history["winners"] = winners_record
+                self._current_history["final_stacks"] = self.stacks.copy()
+                self._current_history["community"] = self.community.copy()
+                self.hand_histories.append(self._current_history)
+                self._current_history = None
+            self.pot = 0
             self.stage = "complete"
             return
 
@@ -331,7 +339,11 @@ class PokerEngine:
             share = pot["amount"] // len(winners)
             for w in winners:
                 self.stacks[w] += share
-            winners_record.append({"pot": pot["amount"], "winners": winners})
+            winners_record.append({
+                "pot": pot["amount"],
+                "winners": winners,
+                "share": share,
+            })
 
         if self._current_history is not None:
             self._current_history["winners"] = winners_record
