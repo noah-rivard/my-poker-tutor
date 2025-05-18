@@ -200,11 +200,32 @@ class MainWindow(QMainWindow):
         self.call_btn.clicked.connect(lambda: self.player_action("call"))
         self.bet_spin = QSpinBox()
         self.bet_spin.setRange(1, 10000)
+        self.bet_spin.setSingleStep(self.engine.bb_amt)
+
+        self.btn_3bb = QPushButton("3BB")
+        self.btn_3bb.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.bb_amt * 3)
+        )
+        self.btn_half_pot = QPushButton("50% Pot")
+        self.btn_half_pot.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.pot // 2)
+        )
+        self.btn_pot = QPushButton("Pot")
+        self.btn_pot.clicked.connect(lambda: self.set_bet_amount(self.engine.pot))
+        self.btn_max = QPushButton("Max")
+        self.btn_max.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.stacks[self.player_seat])
+        )
+
         self.bet_btn = QPushButton("Bet/Raise")
         self.bet_btn.clicked.connect(lambda: self.player_action("bet"))
         action_layout.addWidget(self.fold_btn)
         action_layout.addWidget(self.call_btn)
         action_layout.addWidget(self.bet_spin)
+        action_layout.addWidget(self.btn_3bb)
+        action_layout.addWidget(self.btn_half_pot)
+        action_layout.addWidget(self.btn_pot)
+        action_layout.addWidget(self.btn_max)
         action_layout.addWidget(self.bet_btn)
         vbox.addLayout(action_layout)
 
@@ -227,6 +248,11 @@ class MainWindow(QMainWindow):
     def rebuy(self):
         self.engine.add_chips(self.player_seat, self.rebuy_spin.value())
         self.update_display()
+
+    def set_bet_amount(self, amount: int):
+        """Set the bet spin box to ``amount`` clamped to the player's stack."""
+        amount = max(0, min(int(amount), self.engine.stacks[self.player_seat]))
+        self.bet_spin.setValue(amount)
 
     def player_action(self, action):
         if self.stage == 0:
