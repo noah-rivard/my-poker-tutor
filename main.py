@@ -239,8 +239,9 @@ class MainWindow(QMainWindow):
         self.call_btn = QPushButton("Check")
         self.call_btn.clicked.connect(lambda: self.player_action("call"))
         self.bet_spin = QSpinBox()
-        self.bet_spin.setRange(1, 10000)
+        self.bet_spin.setRange(self.engine.bb_amt, 10000)
         self.bet_spin.setSingleStep(self.engine.bb_amt)
+        self.bet_spin.setValue(self.engine.bb_amt)
 
         self.btn_3bb = QPushButton("3BB")
         self.btn_3bb.clicked.connect(
