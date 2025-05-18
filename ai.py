@@ -3,6 +3,7 @@
 from concurrent.futures import ProcessPoolExecutor
 from typing import Iterable, List
 
+
 from pokerkit import (
     calculate_equities,
     calculate_hand_strength,
@@ -33,9 +34,12 @@ def estimate_equity(
     list of float
         The estimated equity for each player.
     """
+    board = [next(PKCard.parse(c)) for c in board_cards]
+
     with ProcessPoolExecutor() as executor:
         eqs = calculate_equities(
             tuple(parse_range(r) for r in ranges),
+            board,
             tuple(next(PKCard.parse(c)) for c in board_cards),
             2,  # hole cards dealt to each player
             5,  # total board cards
