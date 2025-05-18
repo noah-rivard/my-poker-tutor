@@ -1,3 +1,21 @@
+
+import sys
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QGridLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+    QFrame,
+    QSpinBox,
+    QSlider,
+    QPlainTextEdit,
+)
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap
 import os
 import random
 import sys
@@ -33,6 +51,8 @@ class CardWidget(QFrame):
         if self.card or self.face_down:
             painter.fillRect(rect, QColor("white"))
             painter.setPen(QColor("black"))
+            painter.fillRect(rect, QColor('white'))
+            painter.setPen(QColor('black'))
             painter.drawRect(rect)
         if self.face_down:
             painter.drawPixmap(rect, self.back_image)
@@ -76,6 +96,7 @@ class SeatWidget(QWidget):
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
         self.bet_label = QLabel("Bet: 0")
+        self.total_label = QLabel("Total: 0")
         cards_layout = QHBoxLayout()
         self.card1 = CardWidget()
         self.card2 = CardWidget()
@@ -85,6 +106,7 @@ class SeatWidget(QWidget):
         layout.addLayout(cards_layout)
         layout.addWidget(self.stack_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
+        layout.addWidget(self.total_label, alignment=Qt.AlignCenter)
 
     def _apply_styles(self):
         parts = []
@@ -99,6 +121,9 @@ class SeatWidget(QWidget):
 
     def setBet(self, amount):
         self.bet_label.setText(f"Bet: {amount}")
+
+    def setTotal(self, amount: int) -> None:
+        self.total_label.setText(f"Total: {amount}")
 
     def setCards(self, cards, face_down=False):
         if cards:
@@ -156,6 +181,48 @@ class CommunityWidget(QWidget):
                 self.cards[i].setCard(None)
 
 
+class PotWidget(QWidget):
+    """Widget showing a vertical stack of chips (one per $10)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignBottom)
+        # Use negative spacing so chips overlap slightly forming a stack
+        self.layout.setSpacing(-15)
+        chip_path = os.path.join(
+            os.path.dirname(__file__), "assets", "poker_chip_stack_view.png"
+        )
+        self.chip_pix = QPixmap(chip_path).scaled(
+            20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+    """Simple widget showing a chip for every $10 in the pot."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        chip_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
+        self.chip_pix = QPixmap(chip_path).scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.chips = 0
+
+    def setAmount(self, amount: int) -> None:
+        chips = amount // 10
+        if chips == self.chips:
+            return
+        while self.layout.count() > chips:
+            item = self.layout.takeAt(self.layout.count() - 1)
+            if item:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
+        while self.layout.count() < chips:
+            lbl = QLabel()
+            lbl.setPixmap(self.chip_pix)
+            self.layout.addWidget(lbl)
+        self.chips = chips
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -188,6 +255,8 @@ class MainWindow(QMainWindow):
         center_layout.addWidget(self.community, alignment=Qt.AlignCenter)
         self.pot_display = QLabel("Pot: 0")
         center_layout.addWidget(self.pot_display, alignment=Qt.AlignCenter)
+        self.pot_widget = PotWidget()
+        center_layout.addWidget(self.pot_widget, alignment=Qt.AlignCenter)
         grid.addWidget(center, 1, 1)
 
         # textual pot label below table
@@ -312,6 +381,7 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
+            seat.setTotal(self.engine.total_contrib[i])
             seat.set_turn(
                 self.stage == 1
                 and self.engine.stage != "complete"
@@ -319,6 +389,7 @@ class MainWindow(QMainWindow):
             )
         self.community.setCards(self.engine.community)
         self.pot_display.setText(f"Pot: {self.engine.pot}")
+        self.pot_widget.setAmount(self.engine.pot)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self.update_history()
 
@@ -356,6 +427,7 @@ class MainWindow(QMainWindow):
                 seat.highlight(False)
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
+                seat.setTotal(self.engine.total_contrib[i])
                 seat.setCards(holes.get(i))
                 seat.setCards(holes.get(i), face_down=not seat.is_player)
                 seat.set_turn(i == self.engine.turn)
@@ -378,15 +450,15 @@ class MainWindow(QMainWindow):
                 win_set.update(rec.get("winners", []))
             for i, seat in enumerate(self.seats):
                 seat.setCards(self.engine.hole_cards.get(i))
-
                 seat.highlight(i in win_set)
+                seat.setTotal(self.engine.total_contrib[i])
+                seat.set_turn(False)
+
             if win_set:
                 winner_seats = ", ".join(str(s) for s in sorted(win_set))
                 self.history_box.appendPlainText(
                     f"Hand complete. Winners: {winner_seats}"
                 )
-                seat.highlight(i in winners)
-                seat.set_turn(False)
             self.button.setText("Deal")
             self.stage = 0
 
