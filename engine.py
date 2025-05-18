@@ -173,16 +173,27 @@ class PokerEngine:
                 raise ValueError("Raise amount must be positive")
             to_call = self.current_bet - self.contributions[player]
             raise_total = to_call + amount
-            actual = min(raise_total, self.stacks[player])
-            self.stacks[player] -= actual
-            self.contributions[player] += actual
-            self.total_contrib[player] += actual
-            self.pot += actual
-            self.current_bet = self.contributions[player]
-            self.last_raiser = player
-            event_amount = actual
-            if self.stacks[player] == 0:
-                self.all_in[player] = True
+            if raise_total > self.stacks[player]:
+                # Not enough chips for a full raise -> treat as all-in call
+                actual = self.stacks[player]
+                self.stacks[player] -= actual
+                self.contributions[player] += actual
+                self.total_contrib[player] += actual
+                self.pot += actual
+                event_amount = actual
+                if self.stacks[player] == 0:
+                    self.all_in[player] = True
+            else:
+                actual = raise_total
+                self.stacks[player] -= actual
+                self.contributions[player] += actual
+                self.total_contrib[player] += actual
+                self.pot += actual
+                self.current_bet = self.contributions[player]
+                self.last_raiser = player
+                event_amount = actual
+                if self.stacks[player] == 0:
+                    self.all_in[player] = True
         else:
             raise ValueError(f"Unknown action: {action}")
 
