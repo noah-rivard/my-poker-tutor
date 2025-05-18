@@ -182,46 +182,18 @@ class CommunityWidget(QWidget):
 
 
 class PotWidget(QWidget):
-    """Widget showing a vertical stack of chips (one per $10)."""
+    """Widget displaying the pot amount as plain text."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setAlignment(Qt.AlignBottom)
-        # Use negative spacing so chips overlap slightly forming a stack
-        self.layout.setSpacing(-15)
-        chip_path = os.path.join(
-            os.path.dirname(__file__), "assets", "poker_chip_stack_view.png"
-        )
-        self.chip_pix = QPixmap(chip_path).scaled(
-            20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-    """Simple widget showing a chip for every $10 in the pot."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        chip_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
-        self.chip_pix = QPixmap(chip_path).scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.chips = 0
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.label = QLabel("0")
+        layout.addWidget(self.label)
 
     def setAmount(self, amount: int) -> None:
-        chips = amount // 10
-        if chips == self.chips:
-            return
-        while self.layout.count() > chips:
-            item = self.layout.takeAt(self.layout.count() - 1)
-            if item:
-                w = item.widget()
-                if w:
-                    w.deleteLater()
-        while self.layout.count() < chips:
-            lbl = QLabel()
-            lbl.setPixmap(self.chip_pix)
-            self.layout.addWidget(lbl)
-        self.chips = chips
+        """Update the displayed pot amount."""
+        self.label.setText(str(amount))
 
 class MainWindow(QMainWindow):
     def __init__(self):
