@@ -64,7 +64,6 @@ class SeatWidget(QWidget):
         self.seat_id = seat_id
         self._winner = False
         self._turn = False
-
         self.is_player = False
         self.is_highlighted = False
         layout = QVBoxLayout(self)
@@ -352,6 +351,7 @@ class MainWindow(QMainWindow):
                 seat.highlight(False)
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
+                seat.setCards(holes.get(i))
                 seat.setCards(holes.get(i), face_down=not seat.is_player)
                 seat.set_turn(i == self.engine.turn)
             self.community.setCards([])
