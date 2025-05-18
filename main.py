@@ -73,6 +73,7 @@ class SeatWidget(QWidget):
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
         self.bet_label = QLabel("Bet: 0")
+        self.total_label = QLabel("Total: 0")
         cards_layout = QHBoxLayout()
         self.card1 = CardWidget()
         self.card2 = CardWidget()
@@ -82,6 +83,7 @@ class SeatWidget(QWidget):
         layout.addLayout(cards_layout)
         layout.addWidget(self.stack_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
+        layout.addWidget(self.total_label, alignment=Qt.AlignCenter)
 
     def _apply_styles(self):
         parts = []
@@ -96,6 +98,9 @@ class SeatWidget(QWidget):
 
     def setBet(self, amount):
         self.bet_label.setText(f"Bet: {amount}")
+
+    def setTotal(self, amount: int) -> None:
+        self.total_label.setText(f"Total: {amount}")
 
     def setCards(self, cards, face_down=False):
         if cards:
@@ -194,7 +199,6 @@ class PotWidget(QWidget):
             lbl.setPixmap(self.chip_pix)
             self.layout.addWidget(lbl)
         self.chips = chips
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -353,6 +357,7 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
+            seat.setTotal(self.engine.total_contrib[i])
             seat.set_turn(
                 self.stage == 1
                 and self.engine.stage != "complete"
@@ -397,6 +402,7 @@ class MainWindow(QMainWindow):
                 seat.highlight(False)
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
+                seat.setTotal(self.engine.total_contrib[i])
                 seat.setCards(holes.get(i))
                 seat.setCards(holes.get(i), face_down=not seat.is_player)
                 seat.set_turn(i == self.engine.turn)
@@ -419,7 +425,9 @@ class MainWindow(QMainWindow):
             for i, seat in enumerate(self.seats):
                 seat.setCards(self.engine.hole_cards.get(i))
                 seat.highlight(i in win_set)
+                seat.setTotal(self.engine.total_contrib[i])
                 seat.set_turn(False)
+
             if win_set:
                 winner_seats = ", ".join(str(s) for s in sorted(win_set))
                 self.history_box.appendPlainText(
