@@ -1,5 +1,7 @@
 import unittest
+import json
 from engine import PokerEngine
+from config import engine_from_config
 
 
 class TestPokerEngine(unittest.TestCase):
@@ -49,8 +51,7 @@ class TestPokerEngine(unittest.TestCase):
         self.assertEqual(eng.stacks[eng.bb], 101)
 
     def test_engine_from_config(self):
-        import json
-        from config import engine_from_config
+        pass
 
     def test_side_pot(self):
         eng = PokerEngine(num_players=2, starting_stack=5, sb_amt=1, bb_amt=2)
