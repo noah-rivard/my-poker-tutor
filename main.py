@@ -91,7 +91,6 @@ class SeatWidget(QWidget):
         self._winner = False
         self._turn = False
         self.is_player = False
-        self.is_highlighted = False
         layout = QVBoxLayout(self)
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
@@ -108,12 +107,15 @@ class SeatWidget(QWidget):
         layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.total_label, alignment=Qt.AlignCenter)
 
-    def _apply_styles(self):
+    def _update_style(self) -> None:
+        """Apply styling based on winner, turn, and player status."""
         parts = []
         if self._winner:
             parts.append("background-color: yellow")
         if self._turn:
             parts.append("border: 3px solid green; border-radius: 5px")
+        elif self.is_player:
+            parts.append("border: 2px solid blue")
         self.setStyleSheet("; ".join(parts))
 
     def setStack(self, stack):
@@ -133,17 +135,13 @@ class SeatWidget(QWidget):
             self.card1.setCard(None, face_down)
             self.card2.setCard(None, face_down)
 
-    def highlight(self, state):
+    def highlight(self, state: bool) -> None:
+        """Highlight this seat, typically when it wins a pot."""
         self._winner = state
-        self._apply_styles()
+        self._update_style()
 
     def set_turn(self, state: bool) -> None:
         self._turn = state
-        self._apply_styles()
-
-    def highlight(self, state: bool) -> None:
-        """Highlight this seat, typically for winning a hand."""
-        self.is_highlighted = state
         self._update_style()
 
     def setPlayer(self, is_player: bool) -> None:
@@ -154,16 +152,6 @@ class SeatWidget(QWidget):
         else:
             self.info_label.setText(f"Seat {self.seat_id}")
         self._update_style()
-
-    def _update_style(self) -> None:
-        """Apply style rules for highlight and player indication."""
-        style = ""
-        if self.is_highlighted:
-            style += "background-color: yellow;"
-        if self.is_player:
-            style += "border: 2px solid blue;"
-        self.setStyleSheet(style)
-
 
 class CommunityWidget(QWidget):
     def __init__(self, parent=None):
