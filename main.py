@@ -46,6 +46,8 @@ class SeatWidget(QWidget):
     def __init__(self, seat_id, parent=None):
         super().__init__(parent)
         self.seat_id = seat_id
+        self._winner = False
+        self._turn = False
         layout = QVBoxLayout(self)
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
@@ -59,6 +61,14 @@ class SeatWidget(QWidget):
         layout.addLayout(cards_layout)
         layout.addWidget(self.stack_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
+
+    def _apply_styles(self):
+        parts = []
+        if self._winner:
+            parts.append("background-color: yellow")
+        if self._turn:
+            parts.append("border: 3px solid green; border-radius: 5px")
+        self.setStyleSheet("; ".join(parts))
 
     def setStack(self, stack):
         self.stack_label.setText(f"Stack: {stack}")
@@ -75,10 +85,12 @@ class SeatWidget(QWidget):
             self.card2.setCard(None)
 
     def highlight(self, state):
-        if state:
-            self.setStyleSheet("background-color: yellow")
-        else:
-            self.setStyleSheet("")
+        self._winner = state
+        self._apply_styles()
+
+    def set_turn(self, state: bool) -> None:
+        self._turn = state
+        self._apply_styles()
 
 
 class CommunityWidget(QWidget):
@@ -218,6 +230,11 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
+            seat.set_turn(
+                self.stage == 1
+                and self.engine.stage != "complete"
+                and i == self.engine.turn
+            )
         self.community.setCards(self.engine.community)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
 
@@ -229,6 +246,7 @@ class MainWindow(QMainWindow):
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
                 seat.setCards(holes.get(i))
+                seat.set_turn(i == self.engine.turn)
             self.community.setCards([])
             self.pot_label.setText(f"Pot: {self.engine.pot}")
             self.stage = 1
@@ -238,6 +256,7 @@ class MainWindow(QMainWindow):
             winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
             for i, seat in enumerate(self.seats):
                 seat.highlight(i in winners)
+                seat.set_turn(False)
             self.button.setText("Deal")
             self.stage = 0
 
