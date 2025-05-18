@@ -1,4 +1,4 @@
-"""AI opponents using pokerkit equity calculations."""
+"""Helper utilities for AI calculations using PokerKit."""
 
 from concurrent.futures import ProcessPoolExecutor
 from typing import Iterable, List
@@ -64,10 +64,6 @@ def estimate_equity_vs_random(
     ranges.append([hole])
     board = [next(PKCard.parse(c)) for c in board_cards]
 
-    hole = [PKCard.parse(c) for c in hole_cards]
-    ranges.append([hole])
-    board = [PKCard.parse(c) for c in board_cards]
-
     with ProcessPoolExecutor() as executor:
         eqs = calculate_equities(
             ranges,
@@ -91,28 +87,13 @@ def estimate_hand_strength(
 ) -> float:
     """Shortcut around :func:`calculate_hand_strength`."""
 
-    hole_range = [PKCard.parse(c) for c in hole_cards]
-    board = [PKCard.parse(c) for c in board_cards]
-
-    with ProcessPoolExecutor() as executor:
-        strength = calculate_hand_strength(
-            player_count,
-    hole_range = [next(PKCard.parse(c)) for c in hole_cards]
+    hole_range = parse_range("".join(hole_cards))
     board = [next(PKCard.parse(c)) for c in board_cards]
 
-    with ProcessPoolExecutor() as executor:
-        strength = calculate_hand_strength(
-            player_count,
-    hole_range = parse_range(''.join(hole_cards))
-    board = [next(PKCard.parse(c)) for c in board_cards]
-
-    hole_range = [PKCard.parse(c) for c in hole_cards]
-    board = [PKCard.parse(c) for c in board_cards]
     with ProcessPoolExecutor() as executor:
         strength = calculate_hand_strength(
             player_count,
             hole_range,
-            [hole_range],
             board,
             2,
             5,
