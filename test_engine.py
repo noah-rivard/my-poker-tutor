@@ -1,7 +1,8 @@
-import unittest
 import json
-from engine import PokerEngine
+import unittest
+
 from config import engine_from_config
+from engine import PokerEngine
 
 
 class TestPokerEngine(unittest.TestCase):
