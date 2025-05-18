@@ -55,6 +55,9 @@ class SeatWidget(QWidget):
     def __init__(self, seat_id, parent=None):
         super().__init__(parent)
         self.seat_id = seat_id
+        self._winner = False
+        self._turn = False
+
         self.is_player = False
         self.is_highlighted = False
         layout = QVBoxLayout(self)
@@ -71,6 +74,14 @@ class SeatWidget(QWidget):
         layout.addWidget(self.stack_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.bet_label, alignment=Qt.AlignCenter)
 
+    def _apply_styles(self):
+        parts = []
+        if self._winner:
+            parts.append("background-color: yellow")
+        if self._turn:
+            parts.append("border: 3px solid green; border-radius: 5px")
+        self.setStyleSheet("; ".join(parts))
+
     def setStack(self, stack):
         self.stack_label.setText(f"Stack: {stack}")
 
@@ -85,6 +96,14 @@ class SeatWidget(QWidget):
             self.card1.setCard(None)
             self.card2.setCard(None)
 
+    def highlight(self, state):
+        self._winner = state
+        self._apply_styles()
+
+    def set_turn(self, state: bool) -> None:
+        self._turn = state
+        self._apply_styles()
+        
     def highlight(self, state: bool) -> None:
         """Highlight this seat, typically for winning a hand."""
         self.is_highlighted = state
@@ -193,11 +212,32 @@ class MainWindow(QMainWindow):
         self.call_btn.clicked.connect(lambda: self.player_action("call"))
         self.bet_spin = QSpinBox()
         self.bet_spin.setRange(1, 10000)
+        self.bet_spin.setSingleStep(self.engine.bb_amt)
+
+        self.btn_3bb = QPushButton("3BB")
+        self.btn_3bb.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.bb_amt * 3)
+        )
+        self.btn_half_pot = QPushButton("50% Pot")
+        self.btn_half_pot.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.pot // 2)
+        )
+        self.btn_pot = QPushButton("Pot")
+        self.btn_pot.clicked.connect(lambda: self.set_bet_amount(self.engine.pot))
+        self.btn_max = QPushButton("Max")
+        self.btn_max.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.stacks[self.player_seat])
+        )
+
         self.bet_btn = QPushButton("Bet/Raise")
         self.bet_btn.clicked.connect(lambda: self.player_action("bet"))
         action_layout.addWidget(self.fold_btn)
         action_layout.addWidget(self.call_btn)
         action_layout.addWidget(self.bet_spin)
+        action_layout.addWidget(self.btn_3bb)
+        action_layout.addWidget(self.btn_half_pot)
+        action_layout.addWidget(self.btn_pot)
+        action_layout.addWidget(self.btn_max)
         action_layout.addWidget(self.bet_btn)
         vbox.addLayout(action_layout)
 
@@ -227,6 +267,11 @@ class MainWindow(QMainWindow):
     def rebuy(self):
         self.engine.add_chips(self.player_seat, self.rebuy_spin.value())
         self.update_display()
+
+    def set_bet_amount(self, amount: int):
+        """Set the bet spin box to ``amount`` clamped to the player's stack."""
+        amount = max(0, min(int(amount), self.engine.stacks[self.player_seat]))
+        self.bet_spin.setValue(amount)
 
     def player_action(self, action):
         if self.stage == 0:
@@ -258,6 +303,11 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
+            seat.set_turn(
+                self.stage == 1
+                and self.engine.stage != "complete"
+                and i == self.engine.turn
+            )
         self.community.setCards(self.engine.community)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self.update_history()
@@ -296,6 +346,7 @@ class MainWindow(QMainWindow):
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
                 seat.setCards(holes.get(i))
+                seat.set_turn(i == self.engine.turn)
             self.community.setCards([])
             self.pot_label.setText(f"Pot: {self.engine.pot}")
             self.stage = 1
@@ -315,6 +366,9 @@ class MainWindow(QMainWindow):
                 self.history_box.appendPlainText(
                     f"Hand complete. Winners: {winner_seats}"
                 )
+
+                seat.highlight(i in winners)
+                seat.set_turn(False)
             self.button.setText("Deal")
             self.stage = 0
 
