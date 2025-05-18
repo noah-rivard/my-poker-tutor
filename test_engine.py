@@ -78,6 +78,18 @@ class TestPokerEngine(unittest.TestCase):
 
         os.remove(path)
 
+    def test_partial_raise_does_not_lower_current_bet(self):
+        """Short all-in raise should not change the current bet."""
+        eng = PokerEngine(num_players=3, starting_stack=50, sb_amt=1, bb_amt=2)
+        eng.new_hand()
+
+        eng.player_action("raise", 100)
+        self.assertEqual(eng.current_bet, eng.bb_amt)
+        self.assertEqual(eng.turn, eng.sb)
+
+        eng.player_action("call")
+        self.assertEqual(eng.stage, "flop")
+
 
 if __name__ == "__main__":
     unittest.main()
