@@ -2,6 +2,7 @@
 import os
 import random
 import sys
+from typing import Optional
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QFont, QPainter, QPixmap
@@ -22,6 +23,12 @@ from PyQt5.QtWidgets import (
 
 from engine import PokerEngine
 from ai import estimate_equity_vs_random, estimate_hand_strength
+
+
+def _open_log_file():
+    """Return a file handle for appending UI logs."""
+    path = os.path.join(os.path.dirname(__file__), "ui.log")
+    return open(path, "a", encoding="utf-8")
 
 
 class CardWidget(QFrame):
@@ -185,6 +192,8 @@ class MainWindow(QMainWindow):
         self.engine = PokerEngine(num_players=6)
         self.stage = 0
         self._auto_next = False
+        self.log_file = _open_log_file()
+        self.log_event("Application started")
         central = QWidget()
         self.setCentralWidget(central)
         vbox = QVBoxLayout(central)
@@ -243,17 +252,19 @@ class MainWindow(QMainWindow):
 
         self.btn_3bb = QPushButton("3BB")
         self.btn_3bb.clicked.connect(
-            lambda: self.set_bet_amount(self.engine.bb_amt * 3)
+            lambda: self.set_bet_amount(self.engine.bb_amt * 3, "3BB")
         )
         self.btn_half_pot = QPushButton("50% Pot")
         self.btn_half_pot.clicked.connect(
-            lambda: self.set_bet_amount(self.engine.pot // 2)
+            lambda: self.set_bet_amount(self.engine.pot // 2, "50% Pot")
         )
         self.btn_pot = QPushButton("Pot")
-        self.btn_pot.clicked.connect(lambda: self.set_bet_amount(self.engine.pot))
+        self.btn_pot.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.pot, "Pot")
+        )
         self.btn_max = QPushButton("Max")
         self.btn_max.clicked.connect(
-            lambda: self.set_bet_amount(self.engine.stacks[self.player_seat])
+            lambda: self.set_bet_amount(self.engine.stacks[self.player_seat], "Max")
         )
 
         self.bet_btn = QPushButton("Bet/Raise")
@@ -286,6 +297,7 @@ class MainWindow(QMainWindow):
     def _start_hand(self) -> None:
         """Deal a new hand and reset UI state."""
         self._auto_next = False
+        self.log_event("--- New hand ---")
         self._assign_random_seat()
         holes = self.engine.new_hand()
         for i, seat in enumerate(self.seats):
@@ -327,9 +339,9 @@ class MainWindow(QMainWindow):
         if win_set and not self.winners_displayed:
             for seat_num in sorted(win_map):
                 amt = win_map[seat_num]
-                self.history_box.appendPlainText(
-                    f"Hand complete. Seat {seat_num} won {amt}"
-                )
+                msg = f"Hand complete. Seat {seat_num} won {amt}"
+                self.history_box.appendPlainText(msg)
+                self.log_event(msg)
             self.winners_displayed = True
         self.button.setText("Deal")
         self.stage = 0
@@ -343,22 +355,34 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setPlayer(i == self.player_seat)
 
-    def set_bet_amount(self, amount: int):
-        """Set the bet spin box to ``amount`` clamped to the player's stack."""
+    def log_event(self, text: str) -> None:
+        """Append ``text`` to the persistent UI log."""
+        if hasattr(self, "log_file") and self.log_file:
+            self.log_file.write(text + "\n")
+            self.log_file.flush()
+
+    def set_bet_amount(self, amount: int, origin: Optional[str] = None) -> None:
+        """Set ``bet_spin`` to ``amount`` and log the origin if provided."""
         amount = max(0, min(int(amount), self.engine.stacks[self.player_seat]))
         self.bet_spin.setValue(amount)
+        if origin:
+            self.log_event(f"Clicked {origin} -> bet amount {amount}")
 
     def player_action(self, action):
         if self.stage == 0:
             return
         if action == "fold":
+            self.log_event("Clicked Fold")
             self.engine.player_action("fold")
         elif action == "call":
             if self.engine.contributions[self.player_seat] < self.engine.current_bet:
+                self.log_event("Clicked Call")
                 self.engine.player_action("call")
             else:
+                self.log_event("Clicked Check")
                 self.engine.player_action("check")
         elif action == "bet":
+            self.log_event(f"Clicked Bet/Raise {self.bet_spin.value()}")
             amt = self.bet_spin.value()
             # A bet is only possible when no chips have been wagered in the
             # current betting round. Otherwise the action should be treated as
@@ -497,6 +521,7 @@ class MainWindow(QMainWindow):
             else:
                 line = f"Seat {player} {act} {amt}"
             self.history_box.appendPlainText(line)
+            self.log_event(line)
         self.last_action_index = len(actions)
 
         if (
@@ -514,16 +539,23 @@ class MainWindow(QMainWindow):
                     win_map[w] = win_map.get(w, 0) + share
             for seat_num in sorted(win_map):
                 amt = win_map[seat_num]
-                self.history_box.appendPlainText(
-                    f"Hand complete. Seat {seat_num} won {amt}"
-                )
+                msg = f"Hand complete. Seat {seat_num} won {amt}"
+                self.history_box.appendPlainText(msg)
+                self.log_event(msg)
             self.winners_displayed = True
 
     def on_button(self):
         if self.stage == 0:
+            self.log_event("Clicked Deal")
             self._start_hand()
         elif self.stage == 1 and self.engine.stage == "complete":
+            self.log_event("Clicked Show Results")
             self._show_results()
+
+    def closeEvent(self, event):
+        if hasattr(self, "log_file") and self.log_file:
+            self.log_file.close()
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":
