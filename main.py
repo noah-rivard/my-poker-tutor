@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPlainTextEdit,
     QPushButton,
-    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -229,13 +228,6 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.equity_label, alignment=Qt.AlignCenter)
         vbox.addWidget(self.strength_label, alignment=Qt.AlignCenter)
 
-        # bot speed control
-        ctrl_top = QHBoxLayout()
-        ctrl_top.addWidget(QLabel("Bot Speed:"))
-        self.bot_speed = QSlider(Qt.Horizontal)
-        self.bot_speed.setRange(1, 5)
-        ctrl_top.addWidget(self.bot_speed)
-        vbox.addLayout(ctrl_top)
 
         # action controls
         action_layout = QHBoxLayout()
@@ -385,8 +377,7 @@ class MainWindow(QMainWindow):
         else:
             self.engine.player_action("check")
         self.update_display()
-        delay = 1000 // max(1, self.bot_speed.value())
-        QTimer.singleShot(delay, self.bot_action)
+        QTimer.singleShot(1000, self.bot_action)
 
     def update_display(self):
         for i, seat in enumerate(self.seats):

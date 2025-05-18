@@ -21,7 +21,7 @@ This document outlines a potential path to evolve **my-poker-tutor** into a full
 4. **Enhance the GUI**
    - Allow players to select seats, buy in, and rebuy.
    - Display stacks, bets, and pot amounts visually.
-   - Offer controls for user actions and bot speed settings.
+   - Offer controls for user actions.
 
 5. **Add Configuration and Testing**
    - Make number of players, blinds, and stack sizes configurable.
