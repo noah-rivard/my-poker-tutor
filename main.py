@@ -154,6 +154,21 @@ class CommunityWidget(QWidget):
 
 
 class PotWidget(QWidget):
+    """Widget showing a vertical stack of chips (one per $10)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignBottom)
+        # Use negative spacing so chips overlap slightly forming a stack
+        self.layout.setSpacing(-15)
+        chip_path = os.path.join(
+            os.path.dirname(__file__), "assets", "poker_chip_stack_view.png"
+        )
+        self.chip_pix = QPixmap(chip_path).scaled(
+            20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
     """Simple widget showing a chip for every $10 in the pot."""
 
     def __init__(self, parent=None):
@@ -393,21 +408,23 @@ class MainWindow(QMainWindow):
             self.update_display()
             self.bot_action()
         elif self.stage == 1 and self.engine.stage == "complete":
-            winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
+            winners = (
+                self.engine.hand_histories[-1]["winners"]
+                if self.engine.hand_histories
+                else []
+            )
             win_set = set()
             for rec in winners:
                 win_set.update(rec.get("winners", []))
             for i, seat in enumerate(self.seats):
                 seat.setCards(self.engine.hole_cards.get(i))
-
                 seat.highlight(i in win_set)
+                seat.set_turn(False)
             if win_set:
                 winner_seats = ", ".join(str(s) for s in sorted(win_set))
                 self.history_box.appendPlainText(
                     f"Hand complete. Winners: {winner_seats}"
                 )
-                seat.highlight(i in winners)
-                seat.set_turn(False)
             self.button.setText("Deal")
             self.stage = 0
 
