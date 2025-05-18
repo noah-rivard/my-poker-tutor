@@ -46,6 +46,8 @@ class SeatWidget(QWidget):
     def __init__(self, seat_id, parent=None):
         super().__init__(parent)
         self.seat_id = seat_id
+        self.is_player = False
+        self.is_highlighted = False
         layout = QVBoxLayout(self)
         self.info_label = QLabel(f"Seat {seat_id}")
         self.stack_label = QLabel("Stack: 0")
@@ -74,11 +76,28 @@ class SeatWidget(QWidget):
             self.card1.setCard(None)
             self.card2.setCard(None)
 
-    def highlight(self, state):
-        if state:
-            self.setStyleSheet("background-color: yellow")
+    def highlight(self, state: bool) -> None:
+        """Highlight this seat, typically for winning a hand."""
+        self.is_highlighted = state
+        self._update_style()
+
+    def setPlayer(self, is_player: bool) -> None:
+        """Mark this seat as belonging to the user."""
+        self.is_player = is_player
+        if is_player:
+            self.info_label.setText(f"Seat {self.seat_id} (You)")
         else:
-            self.setStyleSheet("")
+            self.info_label.setText(f"Seat {self.seat_id}")
+        self._update_style()
+
+    def _update_style(self) -> None:
+        """Apply style rules for highlight and player indication."""
+        style = ""
+        if self.is_highlighted:
+            style += "background-color: yellow;"
+        if self.is_player:
+            style += "border: 2px solid blue;"
+        self.setStyleSheet(style)
 
 
 class CommunityWidget(QWidget):
@@ -180,6 +199,8 @@ class MainWindow(QMainWindow):
     def join_game(self):
         self.player_seat = int(self.seat_combo.currentText())
         self.engine.stacks[self.player_seat] = self.buyin_spin.value()
+        for i, seat in enumerate(self.seats):
+            seat.setPlayer(i == self.player_seat)
         self.seat_combo.setDisabled(True)
         self.join_button.setDisabled(True)
         self.update_display()
