@@ -320,10 +320,16 @@ class MainWindow(QMainWindow):
             else []
         )
         win_map = {}
+        hand_map = {}
         for rec in winners:
-            share = rec.get("share", rec.get("pot", 0) // max(1, len(rec.get("winners", []))))
+            share = rec.get(
+                "share", rec.get("pot", 0) // max(1, len(rec.get("winners", [])))
+            )
+            label = rec.get("hand")
             for w in rec.get("winners", []):
                 win_map[w] = win_map.get(w, 0) + share
+                if label:
+                    hand_map[w] = label
         win_set = set(win_map.keys())
         for i, seat in enumerate(self.seats):
             seat.setCards(self.engine.hole_cards.get(i))
@@ -334,9 +340,11 @@ class MainWindow(QMainWindow):
         if win_set and not self.winners_displayed:
             for seat_num in sorted(win_map):
                 amt = win_map[seat_num]
-                self.history_box.appendPlainText(
-                    f"Hand complete. Seat {seat_num} won {amt}"
-                )
+                label = hand_map.get(seat_num)
+                line = f"Hand complete. Seat {seat_num} won {amt}"
+                if label:
+                    line += f" with {label}"
+                self.history_box.appendPlainText(line)
             self.winners_displayed = True
         self.button.setText("Deal")
         self.stage = 0
@@ -513,18 +521,24 @@ class MainWindow(QMainWindow):
             and hist.get("winners")
         ):
             win_map = {}
+            hand_map = {}
             for rec in hist["winners"]:
                 share = rec.get(
                     "share",
                     rec.get("pot", 0) // max(1, len(rec.get("winners", []))),
                 )
+                label = rec.get("hand")
                 for w in rec.get("winners", []):
                     win_map[w] = win_map.get(w, 0) + share
+                    if label:
+                        hand_map[w] = label
             for seat_num in sorted(win_map):
                 amt = win_map[seat_num]
-                self.history_box.appendPlainText(
-                    f"Hand complete. Seat {seat_num} won {amt}"
-                )
+                label = hand_map.get(seat_num)
+                line = f"Hand complete. Seat {seat_num} won {amt}"
+                if label:
+                    line += f" with {label}"
+                self.history_box.appendPlainText(line)
             self.winners_displayed = True
 
     def on_button(self):

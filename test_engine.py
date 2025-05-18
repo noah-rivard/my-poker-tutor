@@ -40,6 +40,8 @@ class TestPokerEngine(unittest.TestCase):
         history = eng.hand_histories[0]
         self.assertIn("winners", history)
         self.assertIsInstance(history["winners"], list)
+        for rec in history["winners"]:
+            self.assertIn("hand", rec)
         self.assertIn("actions", history)
 
     def test_fold_to_single_player(self):
@@ -50,6 +52,8 @@ class TestPokerEngine(unittest.TestCase):
         eng.player_action("fold")
         self.assertEqual(eng.stage, "complete")
         self.assertEqual(eng.stacks[eng.bb], 101)
+        history = eng.hand_histories[0]
+        self.assertIsNone(history["winners"][0]["hand"])
 
     def test_engine_from_config(self):
         pass
@@ -63,6 +67,10 @@ class TestPokerEngine(unittest.TestCase):
         eng.player_action("call")  # seat 1 calls remaining 3
         self.assertEqual(eng.stage, "complete")
         self.assertEqual(sum(eng.stacks), 10)
+        # ensure winning hand label recorded
+        history = eng.hand_histories[0]
+        for rec in history["winners"]:
+            self.assertIsNotNone(rec["hand"]) 
 
         path = "temp_config.json"
         with open(path, "w", encoding="utf-8") as fh:
