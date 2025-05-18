@@ -239,15 +239,8 @@ class MainWindow(QMainWindow):
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
-        # rebuy and bot controls
+        # bot speed control
         ctrl_top = QHBoxLayout()
-        ctrl_top.addWidget(QLabel("Rebuy:"))
-        self.rebuy_spin = QSpinBox()
-        self.rebuy_spin.setRange(100, 10000)
-        ctrl_top.addWidget(self.rebuy_spin)
-        self.rebuy_button = QPushButton("Rebuy")
-        self.rebuy_button.clicked.connect(self.rebuy)
-        ctrl_top.addWidget(self.rebuy_button)
         ctrl_top.addWidget(QLabel("Bot Speed:"))
         self.bot_speed = QSlider(Qt.Horizontal)
         self.bot_speed.setRange(1, 5)
@@ -258,7 +251,7 @@ class MainWindow(QMainWindow):
         action_layout = QHBoxLayout()
         self.fold_btn = QPushButton("Fold")
         self.fold_btn.clicked.connect(lambda: self.player_action("fold"))
-        self.call_btn = QPushButton("Call/Check")
+        self.call_btn = QPushButton("Check")
         self.call_btn.clicked.connect(lambda: self.player_action("call"))
         self.bet_spin = QSpinBox()
         self.bet_spin.setRange(1, 10000)
@@ -311,10 +304,6 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setPlayer(i == self.player_seat)
 
-    def rebuy(self):
-        self.engine.add_chips(self.player_seat, self.rebuy_spin.value())
-        self.update_display()
-
     def set_bet_amount(self, amount: int):
         """Set the bet spin box to ``amount`` clamped to the player's stack."""
         amount = max(0, min(int(amount), self.engine.stacks[self.player_seat]))
@@ -366,7 +355,51 @@ class MainWindow(QMainWindow):
         self.community.setCards(self.engine.community)
         self.pot_widget.setAmount(self.engine.pot)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
+        self._update_action_controls()
         self.update_history()
+
+    def _update_action_controls(self) -> None:
+        """Enable or disable action buttons based on game state."""
+        is_turn = (
+            self.stage == 1
+            and self.engine.stage != "complete"
+            and self.engine.turn == self.player_seat
+        )
+
+        # Default disable everything
+        for w in [
+            self.fold_btn,
+            self.call_btn,
+            self.bet_spin,
+            self.btn_3bb,
+            self.btn_half_pot,
+            self.btn_pot,
+            self.btn_max,
+            self.bet_btn,
+        ]:
+            w.setEnabled(is_turn)
+
+        if not is_turn:
+            return
+
+        facing_bet = (
+            self.engine.contributions[self.player_seat] < self.engine.current_bet
+        )
+        if facing_bet:
+            to_call = self.engine.current_bet - self.engine.contributions[
+                self.player_seat
+            ]
+            self.call_btn.setText(f"Call {to_call}")
+            self.bet_btn.setText("Raise")
+            can_raise = self.engine.stacks[self.player_seat] > to_call
+            for w in [self.bet_spin, self.btn_3bb, self.btn_half_pot, self.btn_pot, self.btn_max, self.bet_btn]:
+                w.setEnabled(can_raise)
+        else:
+            self.call_btn.setText("Check")
+            self.bet_btn.setText("Bet")
+            can_bet = self.engine.stacks[self.player_seat] > 0
+            for w in [self.bet_spin, self.btn_3bb, self.btn_half_pot, self.btn_pot, self.btn_max, self.bet_btn]:
+                w.setEnabled(can_bet)
 
     def update_history(self):
         hist = getattr(self.engine, "_current_history", None)
