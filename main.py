@@ -445,9 +445,12 @@ class MainWindow(QMainWindow):
                 if self.engine.hand_histories
                 else []
             )
-            win_set = set()
+            win_map = {}
             for rec in winners:
-                win_set.update(rec.get("winners", []))
+                share = rec.get("share", rec.get("pot", 0) // max(1, len(rec.get("winners", []))))
+                for w in rec.get("winners", []):
+                    win_map[w] = win_map.get(w, 0) + share
+            win_set = set(win_map.keys())
             for i, seat in enumerate(self.seats):
                 seat.setCards(self.engine.hole_cards.get(i))
                 seat.highlight(i in win_set)
@@ -455,10 +458,11 @@ class MainWindow(QMainWindow):
                 seat.set_turn(False)
 
             if win_set:
-                winner_seats = ", ".join(str(s) for s in sorted(win_set))
-                self.history_box.appendPlainText(
-                    f"Hand complete. Winners: {winner_seats}"
-                )
+                for seat_num in sorted(win_map):
+                    amt = win_map[seat_num]
+                    self.history_box.appendPlainText(
+                        f"Hand complete. Seat {seat_num} won {amt}"
+                    )
             self.button.setText("Deal")
             self.stage = 0
 
