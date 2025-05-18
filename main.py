@@ -291,7 +291,10 @@ class MainWindow(QMainWindow):
                 self.engine.player_action("check")
         elif action == "bet":
             amt = self.bet_spin.value()
-            if self.engine.current_bet == self.engine.contributions[self.player_seat]:
+            # A bet is only possible when no chips have been wagered in the
+            # current betting round. Otherwise the action should be treated as
+            # a raise against the existing bet.
+            if self.engine.current_bet == 0:
                 self.engine.player_action("bet", amt)
             else:
                 self.engine.player_action("raise", amt)
