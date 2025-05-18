@@ -15,7 +15,8 @@ from PyQt5.QtWidgets import (
     QPlainTextEdit,
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter, QColor, QFont
+from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap
+import os
 from engine import PokerEngine
 
 
@@ -23,10 +24,14 @@ class CardWidget(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.card = None
+        self.face_down = False
+        back_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
+        self.back_image = QPixmap(back_path)
         self.setFixedSize(60, 90)
 
-    def setCard(self, card):
+    def setCard(self, card, face_down=False):
         self.card = card
+        self.face_down = face_down
         self.update()
 
     def paintEvent(self, event):
@@ -35,7 +40,9 @@ class CardWidget(QFrame):
         painter.fillRect(rect, QColor('white'))
         painter.setPen(QColor('black'))
         painter.drawRect(rect)
-        if self.card:
+        if self.face_down:
+            painter.drawPixmap(rect, self.back_image)
+        elif self.card:
             rank_map = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6',
                         7: '7', 8: '8', 9: '9', 10: '10',
                         11: 'J', 12: 'Q', 13: 'K', 14: 'A'}
@@ -88,13 +95,13 @@ class SeatWidget(QWidget):
     def setBet(self, amount):
         self.bet_label.setText(f"Bet: {amount}")
 
-    def setCards(self, cards):
+    def setCards(self, cards, face_down=False):
         if cards:
-            self.card1.setCard(cards[0])
-            self.card2.setCard(cards[1])
+            self.card1.setCard(cards[0], face_down)
+            self.card2.setCard(cards[1], face_down)
         else:
-            self.card1.setCard(None)
-            self.card2.setCard(None)
+            self.card1.setCard(None, face_down)
+            self.card2.setCard(None, face_down)
 
     def highlight(self, state):
         self._winner = state
@@ -345,7 +352,7 @@ class MainWindow(QMainWindow):
                 seat.highlight(False)
                 seat.setStack(self.engine.stacks[i])
                 seat.setBet(self.engine.contributions[i])
-                seat.setCards(holes.get(i))
+                seat.setCards(holes.get(i), face_down=not seat.is_player)
                 seat.set_turn(i == self.engine.turn)
             self.community.setCards([])
             self.pot_label.setText(f"Pot: {self.engine.pot}")
@@ -360,13 +367,14 @@ class MainWindow(QMainWindow):
             for rec in winners:
                 win_set.update(rec.get("winners", []))
             for i, seat in enumerate(self.seats):
+                seat.setCards(self.engine.hole_cards.get(i))
+
                 seat.highlight(i in win_set)
             if win_set:
                 winner_seats = ", ".join(str(s) for s in sorted(win_set))
                 self.history_box.appendPlainText(
                     f"Hand complete. Winners: {winner_seats}"
                 )
-
                 seat.highlight(i in winners)
                 seat.set_turn(False)
             self.button.setText("Deal")
