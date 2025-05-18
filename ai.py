@@ -9,7 +9,6 @@ from pokerkit import (
     calculate_hand_strength,
     parse_range,
 )
-from pokerkit import calculate_equities, calculate_hand_strength, parse_range
 from pokerkit.pokerkit.hands import StandardHighHand
 from pokerkit.pokerkit.utilities import Card as PKCard
 from pokerkit.pokerkit.utilities import Deck
@@ -40,7 +39,6 @@ def estimate_equity(
         eqs = calculate_equities(
             tuple(parse_range(r) for r in ranges),
             board,
-            tuple(next(PKCard.parse(c)) for c in board_cards),
             2,  # hole cards dealt to each player
             5,  # total board cards
             Deck.STANDARD,
