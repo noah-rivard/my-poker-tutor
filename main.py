@@ -89,6 +89,7 @@ class SeatWidget(QWidget):
         self.seat_id = seat_id
         self._winner = False
         self._turn = False
+        self._active = True
         self.is_player = False
         layout = QVBoxLayout(self)
         self.info_label = QLabel(f"Seat {seat_id}")
@@ -116,6 +117,15 @@ class SeatWidget(QWidget):
         elif self.is_player:
             parts.append("border: 2px solid blue")
         self.setStyleSheet("; ".join(parts))
+
+        color = "gray" if not self._active else ""
+        for lbl in (
+            self.info_label,
+            self.stack_label,
+            self.bet_label,
+            self.total_label,
+        ):
+            lbl.setStyleSheet(f"color: {color}" if color else "")
 
     def setStack(self, stack):
         self.stack_label.setText(f"Stack: {stack}")
@@ -150,6 +160,13 @@ class SeatWidget(QWidget):
             self.info_label.setText(f"Seat {self.seat_id} (You)")
         else:
             self.info_label.setText(f"Seat {self.seat_id}")
+        self._update_style()
+
+    def setActive(self, active: bool) -> None:
+        """Mark this seat as active or folded."""
+        self._active = active
+        if not active:
+            self.setCards(None)
         self._update_style()
 
 class CommunityWidget(QWidget):
@@ -299,6 +316,7 @@ class MainWindow(QMainWindow):
             seat.setTotal(self.engine.total_contrib[i])
             seat.setCards(holes.get(i), face_down=not seat.is_player)
             seat.set_turn(i == self.engine.turn)
+            seat.setActive(True)
         self.community.setCards([])
         self.pot_display.setText(f"Pot: {self.engine.pot}")
         self.pot_label.setText(f"Pot: {self.engine.pot}")
@@ -392,6 +410,7 @@ class MainWindow(QMainWindow):
 
     def update_display(self):
         for i, seat in enumerate(self.seats):
+            seat.setActive(self.engine.active[i])
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
             seat.setTotal(self.engine.total_contrib[i])
