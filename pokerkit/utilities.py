@@ -15,4 +15,3 @@ class Card:
 class Deck:
     STANDARD = [Card(_Value(r), _Value(s)) for r in "23456789TJQKA" for s in "cdhs"]
 
-from . import Deck, Card
