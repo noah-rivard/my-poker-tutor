@@ -1,9 +1,18 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget,
-    QVBoxLayout, QGridLayout, QHBoxLayout,
-    QPushButton, QLabel, QFrame, QComboBox,
-    QSpinBox, QSlider
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QGridLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+    QFrame,
+    QComboBox,
+    QSpinBox,
+    QSlider,
+    QPlainTextEdit,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QColor, QFont
@@ -144,9 +153,12 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         vbox = QVBoxLayout(central)
-        grid = QGridLayout()
+
+        table_frame = QFrame()
+        table_frame.setStyleSheet("background-color: darkgreen; border-radius: 15px;")
+        grid = QGridLayout(table_frame)
         grid.setSpacing(20)
-        vbox.addLayout(grid)
+        vbox.addWidget(table_frame)
 
         # create seats around the table
         self.seats = []
@@ -234,6 +246,13 @@ class MainWindow(QMainWindow):
         self.button.clicked.connect(self.on_button)
         vbox.addWidget(self.button, alignment=Qt.AlignCenter)
 
+        self.history_box = QPlainTextEdit()
+        self.history_box.setReadOnly(True)
+        self.history_box.setFixedHeight(150)
+        vbox.addWidget(self.history_box)
+
+        self.last_action_index = 0
+
         self.player_seat = 0
 
     def join_game(self):
@@ -291,6 +310,33 @@ class MainWindow(QMainWindow):
             )
         self.community.setCards(self.engine.community)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
+        self.update_history()
+
+    def update_history(self):
+        hist = getattr(self.engine, "_current_history", None)
+        if not hist:
+            return
+        actions = hist.get("actions", [])
+        for action in actions[self.last_action_index:]:
+            player = action.get("player")
+            act = action.get("action")
+            amt = action.get("amount", 0)
+            if act == "blind":
+                line = f"Seat {player} posted blind {amt}"
+            elif act == "bet":
+                line = f"Seat {player} bet {amt}"
+            elif act == "raise":
+                line = f"Seat {player} raised {amt}"
+            elif act == "call":
+                line = f"Seat {player} called {amt}"
+            elif act == "check":
+                line = f"Seat {player} checked"
+            elif act == "fold":
+                line = f"Seat {player} folded"
+            else:
+                line = f"Seat {player} {act} {amt}"
+            self.history_box.appendPlainText(line)
+        self.last_action_index = len(actions)
 
     def on_button(self):
         if self.stage == 0:
@@ -304,11 +350,23 @@ class MainWindow(QMainWindow):
             self.community.setCards([])
             self.pot_label.setText(f"Pot: {self.engine.pot}")
             self.stage = 1
+            self.history_box.clear()
+            self.last_action_index = 0
             self.bot_action()
             self.update_display()
         elif self.stage == 1 and self.engine.stage == "complete":
             winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
+            win_set = set()
+            for rec in winners:
+                win_set.update(rec.get("winners", []))
             for i, seat in enumerate(self.seats):
+                seat.highlight(i in win_set)
+            if win_set:
+                winner_seats = ", ".join(str(s) for s in sorted(win_set))
+                self.history_box.appendPlainText(
+                    f"Hand complete. Winners: {winner_seats}"
+                )
+
                 seat.highlight(i in winners)
                 seat.set_turn(False)
             self.button.setText("Deal")
