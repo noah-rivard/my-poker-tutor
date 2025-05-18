@@ -264,8 +264,15 @@ class PokerEngine:
             self.showdown()
             return
 
-        # next round first player is seat left of button
-        self.turn = (self.button + 1) % self.num_players
+        # next round first player is seat left of button, skipping folded and
+        # all-in players
+        next_turn = (self.button + 1) % self.num_players
+        for _ in range(self.num_players):
+            if self.active[next_turn] and not self.all_in[next_turn]:
+                break
+            next_turn = (next_turn + 1) % self.num_players
+
+        self.turn = next_turn
         self.last_raiser = self.turn
 
     def _compute_side_pots(self):
