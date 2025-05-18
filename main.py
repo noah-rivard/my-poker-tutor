@@ -25,7 +25,9 @@ class CardWidget(QFrame):
         super().__init__(parent)
         self.card = None
         self.face_down = False
-        back_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
+        back_path = os.path.join(
+            os.path.dirname(__file__), "assets", "playing_card_back.png"
+        )
         self.back_image = QPixmap(back_path)
         self.setFixedSize(60, 90)
 
