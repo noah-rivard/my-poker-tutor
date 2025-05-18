@@ -11,6 +11,7 @@ This document outlines a potential path to evolve **my-poker-tutor** into a full
    - Start with simple rule-based bots for basic decisions.
    - Add equity calculations using `pokerkit` to guide betting choices.
    - Explore more advanced approaches such as Monte Carlo Tree Search or reinforcement learning.
+   - Fix `ai.py` helper functions which currently contain duplicate code and syntax errors.
 
 3. **Persist Hand Histories**
    - Log each hand's actions, board runout, and results.
