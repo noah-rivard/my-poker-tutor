@@ -8,6 +8,7 @@ from pokerkit import (
     calculate_hand_strength,
     parse_range,
 )
+from pokerkit import calculate_equities, calculate_hand_strength, parse_range
 from pokerkit.pokerkit.hands import StandardHighHand
 from pokerkit.pokerkit.utilities import Card as PKCard
 from pokerkit.pokerkit.utilities import Deck
@@ -59,6 +60,10 @@ def estimate_equity_vs_random(
     ranges.append([hole])
     board = [next(PKCard.parse(c)) for c in board_cards]
 
+    hole = [PKCard.parse(c) for c in hole_cards]
+    ranges.append([hole])
+    board = [PKCard.parse(c) for c in board_cards]
+
     with ProcessPoolExecutor() as executor:
         eqs = calculate_equities(
             ranges,
@@ -88,6 +93,15 @@ def estimate_hand_strength(
     with ProcessPoolExecutor() as executor:
         strength = calculate_hand_strength(
             player_count,
+    hole_range = parse_range(''.join(hole_cards))
+    board = [next(PKCard.parse(c)) for c in board_cards]
+
+    hole_range = [PKCard.parse(c) for c in hole_cards]
+    board = [PKCard.parse(c) for c in board_cards]
+    with ProcessPoolExecutor() as executor:
+        strength = calculate_hand_strength(
+            player_count,
+            hole_range,
             [hole_range],
             board,
             2,
