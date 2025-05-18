@@ -169,6 +169,14 @@ class PotWidget(QWidget):
         self.chip_pix = QPixmap(chip_path).scaled(
             20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
+    """Simple widget showing a chip for every $10 in the pot."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        chip_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
+        self.chip_pix = QPixmap(chip_path).scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.chips = 0
 
     def setAmount(self, amount: int) -> None:
