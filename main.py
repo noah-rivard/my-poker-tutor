@@ -222,6 +222,7 @@ class MainWindow(QMainWindow):
         # equity and hand strength display
         self.show_stats = QCheckBox("Show Stats")
         self.show_stats.setChecked(True)
+        self.show_stats.stateChanged.connect(lambda _: self._update_stats())
         vbox.addWidget(self.show_stats, alignment=Qt.AlignCenter)
         self.equity_label = QLabel("Equity: N/A")
         self.strength_label = QLabel("Hand Strength: N/A")
