@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QSlider,
     QPlainTextEdit,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap
 import os
 import random
@@ -39,9 +39,10 @@ class CardWidget(QFrame):
     def paintEvent(self, event):
         painter = QPainter(self)
         rect = event.rect()
-        painter.fillRect(rect, QColor('white'))
-        painter.setPen(QColor('black'))
-        painter.drawRect(rect)
+        if self.card or self.face_down:
+            painter.fillRect(rect, QColor('white'))
+            painter.setPen(QColor('black'))
+            painter.drawRect(rect)
         if self.face_down:
             painter.drawPixmap(rect, self.back_image)
         elif self.card:
@@ -152,6 +153,34 @@ class CommunityWidget(QWidget):
                 self.cards[i].setCard(None)
 
 
+class PotWidget(QWidget):
+    """Simple widget showing a chip for every $10 in the pot."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        chip_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
+        self.chip_pix = QPixmap(chip_path).scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.chips = 0
+
+    def setAmount(self, amount: int) -> None:
+        chips = amount // 10
+        if chips == self.chips:
+            return
+        while self.layout.count() > chips:
+            item = self.layout.takeAt(self.layout.count() - 1)
+            if item:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
+        while self.layout.count() < chips:
+            lbl = QLabel()
+            lbl.setPixmap(self.chip_pix)
+            self.layout.addWidget(lbl)
+        self.chips = chips
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -177,11 +206,17 @@ class MainWindow(QMainWindow):
             grid.addWidget(seat, pos[0], pos[1])
             self.seats.append(seat)
 
-        # community cards at center
+        # community cards and pot display at center
+        center = QWidget()
+        center_layout = QVBoxLayout(center)
+        center_layout.setContentsMargins(0, 0, 0, 0)
         self.community = CommunityWidget()
-        grid.addWidget(self.community, 1, 1)
+        center_layout.addWidget(self.community, alignment=Qt.AlignCenter)
+        self.pot_widget = PotWidget()
+        center_layout.addWidget(self.pot_widget, alignment=Qt.AlignCenter)
+        grid.addWidget(center, 1, 1)
 
-        # pot display
+        # textual pot label below table
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
@@ -285,15 +320,19 @@ class MainWindow(QMainWindow):
                 self.engine.player_action("bet", amt)
             else:
                 self.engine.player_action("raise", amt)
-        self.bot_action()
         self.update_display()
+        self.bot_action()
 
     def bot_action(self):
-        while self.engine.stage != "complete" and self.engine.turn != self.player_seat:
-            if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
-                self.engine.player_action("call")
-            else:
-                self.engine.player_action("check")
+        if self.engine.stage == "complete" or self.engine.turn == self.player_seat:
+            return
+        if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
+            self.engine.player_action("call")
+        else:
+            self.engine.player_action("check")
+        self.update_display()
+        delay = 1000 // max(1, self.bot_speed.value())
+        QTimer.singleShot(delay, self.bot_action)
 
     def update_display(self):
         for i, seat in enumerate(self.seats):
@@ -305,6 +344,7 @@ class MainWindow(QMainWindow):
                 and i == self.engine.turn
             )
         self.community.setCards(self.engine.community)
+        self.pot_widget.setAmount(self.engine.pot)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self.update_history()
 
@@ -350,8 +390,8 @@ class MainWindow(QMainWindow):
             self.stage = 1
             self.history_box.clear()
             self.last_action_index = 0
-            self.bot_action()
             self.update_display()
+            self.bot_action()
         elif self.stage == 1 and self.engine.stage == "complete":
             winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
             win_set = set()
