@@ -158,6 +158,47 @@ class CommunityWidget(QWidget):
                 self.cards[i].setCard(None)
 
 
+class PotWidget(QWidget):
+    """Widget showing a vertical stack of chips (one per $10)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignBottom)
+        # Use negative spacing so chips overlap slightly forming a stack
+        self.layout.setSpacing(-15)
+        chip_path = os.path.join(
+            os.path.dirname(__file__), "assets", "poker_chip_stack_view.png"
+        )
+        self.chip_pix = QPixmap(chip_path).scaled(
+            20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+    """Simple widget showing a chip for every $10 in the pot."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        chip_path = os.path.join(os.path.dirname(__file__), "assets", "unnamed.png")
+        self.chip_pix = QPixmap(chip_path).scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.chips = 0
+
+    def setAmount(self, amount: int) -> None:
+        chips = amount // 10
+        if chips == self.chips:
+            return
+        while self.layout.count() > chips:
+            item = self.layout.takeAt(self.layout.count() - 1)
+            if item:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
+        while self.layout.count() < chips:
+            lbl = QLabel()
+            lbl.setPixmap(self.chip_pix)
+            self.layout.addWidget(lbl)
+        self.chips = chips
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -184,9 +225,15 @@ class MainWindow(QMainWindow):
             grid.addWidget(seat, pos[0], pos[1])
             self.seats.append(seat)
 
-        # community cards at center
+        # community cards and pot display at center
+        center = QWidget()
+        center_layout = QVBoxLayout(center)
+        center_layout.setContentsMargins(0, 0, 0, 0)
         self.community = CommunityWidget()
-        grid.addWidget(self.community, 1, 1)
+        center_layout.addWidget(self.community, alignment=Qt.AlignCenter)
+        self.pot_widget = PotWidget()
+        center_layout.addWidget(self.pot_widget, alignment=Qt.AlignCenter)
+        grid.addWidget(center, 1, 1)
 
         # textual pot label below table
         self.pot_label = QLabel("Pot: 0")
@@ -317,6 +364,7 @@ class MainWindow(QMainWindow):
                 and i == self.engine.turn
             )
         self.community.setCards(self.engine.community)
+        self.pot_widget.setAmount(self.engine.pot)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self.update_history()
 
@@ -366,22 +414,25 @@ class MainWindow(QMainWindow):
             self.update_display()
             self.bot_action()
         elif self.stage == 1 and self.engine.stage == "complete":
-            winners = self.engine.hand_histories[-1]["winners"] if self.engine.hand_histories else []
+            winners = (
+                self.engine.hand_histories[-1]["winners"]
+                if self.engine.hand_histories
+                else []
+            )
             win_set = set()
             for rec in winners:
                 win_set.update(rec.get("winners", []))
             for i, seat in enumerate(self.seats):
                 seat.setCards(self.engine.hole_cards.get(i))
-
                 seat.highlight(i in win_set)
                 seat.setTotal(self.engine.total_contrib[i])
+                seat.set_turn(False)
+
             if win_set:
                 winner_seats = ", ".join(str(s) for s in sorted(win_set))
                 self.history_box.appendPlainText(
                     f"Hand complete. Winners: {winner_seats}"
                 )
-                seat.highlight(i in winners)
-                seat.set_turn(False)
             self.button.setText("Deal")
             self.stage = 0
 

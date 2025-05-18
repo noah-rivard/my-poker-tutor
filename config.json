@@ -1,6 +1,6 @@
 {
   "num_players": 6,
-  "starting_stack": 1000,
+  "starting_stack": 100,
   "sb_amt": 10,
   "bb_amt": 20
 }
