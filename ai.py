@@ -3,10 +3,10 @@
 from concurrent.futures import ProcessPoolExecutor
 from typing import Iterable, List
 
-from pokerkit import calculate_equities, parse_range
-from pokerkit.hands import StandardHighHand
-from pokerkit.utilities import Card as PKCard
-from pokerkit.utilities import Deck
+from pokerkit import calculate_equities, calculate_hand_strength, parse_range
+from pokerkit.pokerkit.hands import StandardHighHand
+from pokerkit.pokerkit.utilities import Card as PKCard
+from pokerkit.pokerkit.utilities import Deck
 
 
 def estimate_equity(
@@ -40,3 +40,59 @@ def estimate_equity(
             executor=executor,
         )
     return eqs
+
+
+def estimate_equity_vs_random(
+    hole_cards: Iterable[str],
+    board_cards: Iterable[str] = (),
+    player_count: int = 2,
+    sample_count: int = 1000,
+) -> float:
+    """Estimate equity of ``hole_cards`` versus random opponents."""
+
+    ranges = [[[]] for _ in range(player_count - 1)]
+    hole = [PKCard.parse(c) for c in hole_cards]
+    ranges.append([hole])
+    board = [PKCard.parse(c) for c in board_cards]
+
+    with ProcessPoolExecutor() as executor:
+        eqs = calculate_equities(
+            ranges,
+            board,
+            2,
+            5,
+            Deck.STANDARD,
+            (StandardHighHand,),
+            sample_count=sample_count,
+            executor=executor,
+        )
+
+    return eqs[-1]
+
+
+def estimate_hand_strength(
+    hole_cards: Iterable[str],
+    board_cards: Iterable[str] = (),
+    player_count: int = 2,
+    sample_count: int = 1000,
+) -> float:
+    """Shortcut around :func:`calculate_hand_strength`."""
+
+    hole_range = [PKCard.parse(c) for c in hole_cards]
+    board = [PKCard.parse(c) for c in board_cards]
+
+    with ProcessPoolExecutor() as executor:
+        strength = calculate_hand_strength(
+            player_count,
+            [hole_range],
+            board,
+            2,
+            5,
+            Deck.STANDARD,
+            (StandardHighHand,),
+            sample_count=sample_count,
+            executor=executor,
+        )
+
+    return strength
+
