@@ -291,6 +291,7 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.history_box)
 
         self.last_action_index = 0
+        self.winners_displayed = False
 
         self._assign_random_seat()
 
@@ -424,6 +425,26 @@ class MainWindow(QMainWindow):
             self.history_box.appendPlainText(line)
         self.last_action_index = len(actions)
 
+        if (
+            self.engine.stage == "complete"
+            and not self.winners_displayed
+            and hist.get("winners")
+        ):
+            win_map = {}
+            for rec in hist["winners"]:
+                share = rec.get(
+                    "share",
+                    rec.get("pot", 0) // max(1, len(rec.get("winners", []))),
+                )
+                for w in rec.get("winners", []):
+                    win_map[w] = win_map.get(w, 0) + share
+            for seat_num in sorted(win_map):
+                amt = win_map[seat_num]
+                self.history_box.appendPlainText(
+                    f"Hand complete. Seat {seat_num} won {amt}"
+                )
+            self.winners_displayed = True
+
     def on_button(self):
         if self.stage == 0:
             self._assign_random_seat()
@@ -442,6 +463,7 @@ class MainWindow(QMainWindow):
             self.stage = 1
             self.history_box.clear()
             self.last_action_index = 0
+            self.winners_displayed = False
             self.update_display()
             self.bot_action()
         elif self.stage == 1 and self.engine.stage == "complete":
@@ -462,12 +484,13 @@ class MainWindow(QMainWindow):
                 seat.setTotal(self.engine.total_contrib[i])
                 seat.set_turn(False)
 
-            if win_set:
+            if win_set and not self.winners_displayed:
                 for seat_num in sorted(win_map):
                     amt = win_map[seat_num]
                     self.history_box.appendPlainText(
                         f"Hand complete. Seat {seat_num} won {amt}"
                     )
+                self.winners_displayed = True
             self.button.setText("Deal")
             self.stage = 0
 
