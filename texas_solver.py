@@ -86,7 +86,6 @@ def simple_parameter_file(
     path.write_text("\n".join(lines))
     return path
 
-
 def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:
     """Return the highest frequency action from solver output.
 
