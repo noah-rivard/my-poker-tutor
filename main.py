@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
 )
 
 from engine import PokerEngine
+from texas_solver import simple_parameter_file
 from ai import (
     estimate_equity_vs_random,
     optimal_ai_move,
@@ -259,6 +260,11 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.equity_label, alignment=Qt.AlignCenter)
         vbox.addWidget(self.optimal_label, alignment=Qt.AlignCenter)
 
+        self.use_solver = QCheckBox("Auto-update solver")
+        vbox.addWidget(self.use_solver, alignment=Qt.AlignCenter)
+        self.solver_label = QLabel("Solver file: N/A")
+        vbox.addWidget(self.solver_label, alignment=Qt.AlignCenter)
+
 
         # action controls
         action_layout = QHBoxLayout()
@@ -452,6 +458,7 @@ class MainWindow(QMainWindow):
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self._update_stats()
         self._update_action_controls()
+        self._update_solver_params()
         self.update_history()
         if (
             self.stage == 1
@@ -534,6 +541,15 @@ class MainWindow(QMainWindow):
             can_bet = self.engine.stacks[self.player_seat] > 0
             for w in [self.bet_spin, self.btn_3bb, self.btn_half_pot, self.btn_pot, self.btn_max, self.bet_btn]:
                 w.setEnabled(can_bet)
+
+    def _update_solver_params(self) -> None:
+        """Generate a solver parameter file from the current game state."""
+        if not self.use_solver.isChecked():
+            return
+        param_dir = os.path.join(os.path.dirname(__file__), "solver_params")
+        path = os.path.join(param_dir, "current.json")
+        simple_parameter_file(self.engine, self.player_seat, path)
+        self.solver_label.setText(f"Solver file: {path}")
 
     def update_history(self):
         hist = getattr(self.engine, "_current_history", None)
