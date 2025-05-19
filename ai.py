@@ -154,3 +154,71 @@ def basic_ai_decision(
         return "bet", engine.bb_amt * 2
     return "check", 0
 
+
+def optimal_ai_move(
+    engine: PokerEngine,
+    seat: int,
+    ranges: dict[int, str] | None = None,
+    sample_count: int = 500,
+) -> Tuple[str, int]:
+    """Return a suggested action using simple equity and pot odds heuristics."""
+
+    hole = engine.hole_cards.get(seat)
+    if not hole:
+        return "check", 0
+
+    hole_strs = [engine._tuple_to_str(c) for c in hole]
+    board_strs = [engine._tuple_to_str(c) for c in engine.community]
+    to_call = max(0, engine.current_bet - engine.contributions[seat])
+    pot = engine.pot
+
+    active_seats = [i for i in range(engine.num_players) if engine.active[i]]
+
+    if ranges:
+        order = []
+        for i in active_seats:
+            if i == seat:
+                order.append("".join(hole_strs))
+            else:
+                order.append(ranges.get(i, ""))
+        try:
+            equities = estimate_equity(order, board_strs, sample_count=sample_count)
+            hero_equity = equities[active_seats.index(seat)]
+        except Exception:
+            hero_equity = 0.5
+    else:
+        try:
+            hero_equity = estimate_hand_strength(
+                hole_strs,
+                board_strs,
+                len(active_seats),
+                sample_count=sample_count,
+            )
+        except Exception:
+            hero_equity = 0.5
+
+    pos_index = (seat - engine.button - 1) % engine.num_players
+    position_bonus = 0.05 * pos_index / max(1, engine.num_players - 1)
+    equity = min(1.0, max(0.0, hero_equity + position_bonus))
+
+    pot_odds = to_call / (pot + to_call) if to_call else 0
+
+    if to_call:
+        if equity < pot_odds * 0.9:
+            return "fold", 0
+        if equity < pot_odds + 0.1:
+            return "call", 0
+        raise_amt = int(min(engine.stacks[seat] - to_call, max(engine.bb_amt, pot // 2)))
+        if raise_amt <= 0:
+            return "call", 0
+        return "raise", raise_amt
+
+    if equity <= 0.5:
+        return "check", 0
+    bet_amt = int(min(engine.stacks[seat], max(engine.bb_amt, pot // 2)))
+    if equity > 0.7:
+        bet_amt = int(min(engine.stacks[seat], max(engine.bb_amt * 2, (pot * 3) // 4)))
+    if bet_amt <= 0:
+        return "check", 0
+    return "bet", bet_amt
+
