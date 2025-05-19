@@ -2,6 +2,8 @@
 
 from concurrent.futures import ProcessPoolExecutor
 import random
+import tempfile
+from pathlib import Path
 from typing import Iterable, List, Tuple
 
 from engine import PokerEngine
@@ -15,6 +17,7 @@ from pokerkit import (
 from pokerkit.pokerkit.hands import StandardHighHand
 from pokerkit.pokerkit.utilities import Card as PKCard
 from pokerkit.pokerkit.utilities import Deck
+import texas_solver
 
 
 def estimate_equity(
@@ -221,4 +224,62 @@ def optimal_ai_move(
     if bet_amt <= 0:
         return "check", 0
     return "bet", bet_amt
+
+
+def solver_ai_move(
+    engine: PokerEngine,
+    seat: int,
+    *,
+    hero_range: str,
+    opp_range: str,
+    exe_dir: str | Path = texas_solver.DEFAULT_EXE_DIR,
+) -> Tuple[str, int]:
+    """Use TexasSolver to suggest an action for ``seat``.
+
+    Parameters
+    ----------
+    engine : PokerEngine
+        Current game engine.
+    seat : int
+        Seat index of the acting player.
+    hero_range : str
+        Range string for the hero player.
+    opp_range : str
+        Range string for the opponent.
+    exe_dir : str or Path, optional
+        Directory containing ``console_solver.exe``.
+    """
+
+    hole = engine.hole_cards.get(seat)
+    if not hole:
+        return "check", 0
+
+    board = [engine._tuple_to_str(c) for c in engine.community]
+    hero_hand = "".join(engine._tuple_to_str(c) for c in hole)
+
+    opp = 1 - seat if engine.num_players == 2 else (seat + 1) % engine.num_players
+    stack = min(engine.stacks[seat], engine.stacks[opp])
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
+        params = texas_solver.simple_parameter_file(
+            pot=engine.pot,
+            stack=stack,
+            board=board,
+            range_oop=opp_range,
+            range_ip=hero_range,
+            output_path=tmp.name,
+        )
+
+    try:
+        out = texas_solver.run_console_solver(params, exe_dir=exe_dir, timeout=15)
+        action, amt = texas_solver.parse_solver_output(out, hero_hand)
+    except Exception:
+        action, amt = "check", 0
+    finally:
+        try:
+            Path(params).unlink()
+        except FileNotFoundError:
+            pass
+
+    return action, amt
 
