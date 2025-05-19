@@ -43,3 +43,28 @@ eng.new_hand()
 ... # play some actions
 eng.save_histories("hand_history.json")
 ```
+
+## Solving Spots with TexasSolver
+
+The repository bundles TexasSolver binaries under `TexasSolver-v0.2.0-Windows`.  
+Use the helper functions in `texas_solver.py` to create parameter files and call
+`console_solver.exe` from Python.
+
+```python
+from texas_solver import simple_parameter_file, run_console_solver
+
+params = simple_parameter_file(
+    pot=50,
+    stack=200,
+    board=["Qs", "Jh", "2h"],
+    range_oop="JJ,TT,99",
+    range_ip="AK,AQ",
+    output_path="spot.txt",
+)
+
+output = run_console_solver(params)
+print(output)
+```
+
+Running the solver requires Windows or a `wine` installation on other
+platforms.
