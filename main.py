@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (
 from engine import PokerEngine
 from ai import (
     estimate_equity_vs_random,
-    estimate_hand_strength,
+    optimal_ai_move,
     basic_ai_decision,
 )
 
@@ -249,15 +249,15 @@ class MainWindow(QMainWindow):
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
-        # equity and hand strength display
+        # equity and suggestion display
         self.show_stats = QCheckBox("Show Stats")
         self.show_stats.setChecked(True)
         self.show_stats.stateChanged.connect(lambda _: self._update_stats())
         vbox.addWidget(self.show_stats, alignment=Qt.AlignCenter)
         self.equity_label = QLabel("Equity: N/A")
-        self.strength_label = QLabel("Hand Strength: N/A")
+        self.optimal_label = QLabel("Recommended: N/A")
         vbox.addWidget(self.equity_label, alignment=Qt.AlignCenter)
-        vbox.addWidget(self.strength_label, alignment=Qt.AlignCenter)
+        vbox.addWidget(self.optimal_label, alignment=Qt.AlignCenter)
 
 
         # action controls
@@ -461,17 +461,17 @@ class MainWindow(QMainWindow):
             self._show_results()
 
     def _update_stats(self) -> None:
-        """Update equity and hand strength displays."""
+        """Update equity and recommended move displays."""
         visible = self.show_stats.isChecked()
         self.equity_label.setVisible(visible)
-        self.strength_label.setVisible(visible)
+        self.optimal_label.setVisible(visible)
         if not visible:
             return
 
         hole = self.engine.hole_cards.get(self.player_seat)
         if not hole:
             self.equity_label.setText("Equity: N/A")
-            self.strength_label.setText("Hand Strength: N/A")
+            self.optimal_label.setText("Recommended: N/A")
             return
 
         hole_strs = [self.engine._tuple_to_str(c) for c in hole]
@@ -479,12 +479,18 @@ class MainWindow(QMainWindow):
         active_count = sum(self.engine.active)
         try:
             eq = estimate_equity_vs_random(hole_strs, board_strs, active_count)
-            hs = estimate_hand_strength(hole_strs, board_strs, active_count)
             self.equity_label.setText(f"Equity: {eq*100:.1f}%")
-            self.strength_label.setText(f"Hand Strength: {hs*100:.1f}%")
         except Exception:
             self.equity_label.setText("Equity: err")
-            self.strength_label.setText("Hand Strength: err")
+
+        try:
+            action, amt = optimal_ai_move(self.engine, self.player_seat, sample_count=100)
+            if action in {"bet", "raise"}:
+                self.optimal_label.setText(f"Recommended: {action} {amt}")
+            else:
+                self.optimal_label.setText(f"Recommended: {action}")
+        except Exception:
+            self.optimal_label.setText("Recommended: err")
 
     def _update_action_controls(self) -> None:
         """Enable or disable action buttons based on game state."""
