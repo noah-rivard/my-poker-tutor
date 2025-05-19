@@ -91,6 +91,7 @@ def run_console_solver(
     use_wine: bool | None = None,
     timeout: int | None = None,
 ) -> str:
+    """Run ``console_solver.exe`` with the given parameter file."""
     """Run ``console_solver.exe`` with the given parameter file.
 
     Parameters
@@ -159,6 +160,9 @@ def simple_parameter_file(
     path.write_text("\n".join(lines))
     return path
 
+
+def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:
+    """Return the highest frequency action from solver output."""
 def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:
     """Return the highest frequency action from solver output."""
 def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:
