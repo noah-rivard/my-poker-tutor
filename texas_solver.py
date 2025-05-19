@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -84,3 +85,47 @@ def simple_parameter_file(
     path = Path(output_path)
     path.write_text("\n".join(lines))
     return path
+
+def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:
+    """Return the highest frequency action from solver output.
+
+    Parameters
+    ----------
+    output : str
+        Raw text output from ``console_solver.exe`` which is expected to be JSON.
+    hero_hand : str
+        Hole cards of the hero concatenated without separators, e.g. ``"AhKh"``.
+
+    Returns
+    -------
+    tuple[str, int]
+        A pair of action name and bet size. Check/call/fold return ``0`` for the
+        size.
+    """
+
+    try:
+        data = json.loads(output)
+        actions = data["strategy"]["actions"]
+        combos = data["strategy"]["strategy"]
+    except Exception:  # pragma: no cover - invalid JSON
+        return "check", 0
+
+    key = hero_hand
+    if key not in combos:
+        key = key[2:] + key[:2]
+    if key not in combos:
+        return "check", 0
+
+    dist = combos[key]
+    idx = dist.index(max(dist))
+    raw = actions[idx]
+    parts = raw.split()
+
+    name = parts[0].lower()
+    amount = 0
+    if len(parts) > 1:
+        try:
+            amount = int(float(parts[1]))
+        except ValueError:
+            amount = 0
+    return name, amount
