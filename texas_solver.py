@@ -3,6 +3,12 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
+from pathlib import Path
+from typing import Iterable
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from engine import PokerEngine
 from typing import Any, Dict
 
 
@@ -91,6 +97,13 @@ def run_console_solver(
     use_wine: bool | None = None,
     timeout: int | None = None,
 ) -> str:
+    """Run ``console_solver.exe`` with the supplied parameter file."""
+
+    exe_path = Path(exe_dir) / "console_solver.exe"
+    cmd = [str(exe_path), str(param_file)]
+
+    if use_wine is None:
+        use_wine = sys.platform != "win32"
     """Run ``console_solver.exe`` with the given parameter file."""
     """Run ``console_solver.exe`` with the given parameter file.
 
@@ -143,6 +156,7 @@ def simple_parameter_file(
     range_ip: str,
     output_path: Path | str,
 ) -> Path:
+    """Create a minimal parameter file for a heads-up spot."""
     """Create a minimal parameter file for a heads-up flop spot."""
 
     board_str = ",".join(board) if board else ""
@@ -161,6 +175,25 @@ def simple_parameter_file(
     return path
 
 
+def engine_parameter_file(engine: "PokerEngine", seat: int, path: str) -> str:
+    """Write a JSON parameter file for ``console_solver.exe`` from ``engine``."""
+
+    data = {
+        "hero_seat": seat,
+        "board": [engine._tuple_to_str(c) for c in engine.community],
+        "holes": {
+            str(i): [engine._tuple_to_str(c) for c in cards]
+            for i, cards in engine.hole_cards.items()
+        },
+        "stacks": engine.stacks,
+        "contributions": engine.contributions,
+        "current_bet": engine.current_bet,
+        "pot": engine.pot,
+    }
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+    return path
 def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:
     """Return the highest frequency action from solver output."""
 def parse_solver_output(output: str, hero_hand: str) -> tuple[str, int]:

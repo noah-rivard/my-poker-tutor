@@ -23,5 +23,7 @@ This document outlines a potential path to evolve **my-poker-tutor** into a full
    - Connect solver results to `PokerEngine` so the AI can request optimal lines in real time.
    - Precompute solutions for common spots using the provided ranges and cache them for quick lookup.
    - Document how to run the Windows binaries on other platforms (e.g., via Wine).
+
+These steps provide a roadmap toward a more complete poker simulator with AI bots and analytics capabilities.
    - Remove duplicate function definitions in `texas_solver.py` which currently
      defines helpers like `simple_parameter_file` twice.
