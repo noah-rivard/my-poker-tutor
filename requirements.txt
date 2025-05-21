@@ -1,2 +1,12 @@
 PyQt5>=5.12
 pokerkit>=0.6.3
+
+black
+flake8
+pylint
+isort
+mypy
+pytest
+pytest-cov
+coverage
+pre-commit
