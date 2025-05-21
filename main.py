@@ -18,16 +18,11 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
     QWidget,
-    QCheckBox,
 )
 
 from engine import PokerEngine
-from texas_solver import simple_parameter_file
-from ai import (
-    estimate_equity_vs_random,
-    optimal_ai_move,
-    basic_ai_decision,
-)
+from ai import basic_ai_decision
+from analysis_window import AnalysisWindow
 
 
 def _open_log_file():
@@ -177,6 +172,7 @@ class SeatWidget(QWidget):
             self.setCards(None)
         self._update_style()
 
+
 class CommunityWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -206,6 +202,7 @@ class PotWidget(QWidget):
     def setAmount(self, amount: int) -> None:
         """Update the displayed pot amount."""
         self.label.setText(str(amount))
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -249,21 +246,6 @@ class MainWindow(QMainWindow):
         # textual pot label below table
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
-
-        # equity and suggestion display
-        self.show_stats = QCheckBox("Show Stats")
-        self.show_stats.setChecked(True)
-        self.show_stats.stateChanged.connect(lambda _: self._update_stats())
-        vbox.addWidget(self.show_stats, alignment=Qt.AlignCenter)
-        self.equity_label = QLabel("Equity: N/A")
-        self.optimal_label = QLabel("Recommended: N/A")
-        vbox.addWidget(self.equity_label, alignment=Qt.AlignCenter)
-        vbox.addWidget(self.optimal_label, alignment=Qt.AlignCenter)
-
-        self.use_solver = QCheckBox("Auto-update solver")
-        vbox.addWidget(self.use_solver, alignment=Qt.AlignCenter)
-        self.solver_label = QLabel("Solver file: N/A")
-        vbox.addWidget(self.solver_label, alignment=Qt.AlignCenter)
 
 
         # action controls
@@ -320,6 +302,8 @@ class MainWindow(QMainWindow):
         self.winners_displayed = False
 
         self._assign_random_seat()
+        self.analysis_window = AnalysisWindow(self.engine, self.player_seat)
+        self.analysis_window.show()
 
     def _start_hand(self) -> None:
         """Deal a new hand and reset UI state."""
@@ -393,6 +377,8 @@ class MainWindow(QMainWindow):
         self.player_seat = random.randrange(self.engine.num_players)
         for i, seat in enumerate(self.seats):
             seat.setPlayer(i == self.player_seat)
+        if hasattr(self, "analysis_window"):
+            self.analysis_window.set_context(self.engine, self.player_seat)
 
     def log_event(self, text: str) -> None:
         """Append ``text`` to the persistent UI log."""
@@ -456,9 +442,8 @@ class MainWindow(QMainWindow):
         self.pot_display.setText(f"Pot: {self.engine.pot}")
         self.pot_widget.setAmount(self.engine.pot)
         self.pot_label.setText(f"Pot: {self.engine.pot}")
-        self._update_stats()
+        self.analysis_window.refresh()
         self._update_action_controls()
-        self._update_solver_params()
         self.update_history()
         if (
             self.stage == 1
@@ -466,38 +451,6 @@ class MainWindow(QMainWindow):
             and not self._auto_next
         ):
             self._show_results()
-
-    def _update_stats(self) -> None:
-        """Update equity and recommended move displays."""
-        visible = self.show_stats.isChecked()
-        self.equity_label.setVisible(visible)
-        self.optimal_label.setVisible(visible)
-        if not visible:
-            return
-
-        hole = self.engine.hole_cards.get(self.player_seat)
-        if not hole:
-            self.equity_label.setText("Equity: N/A")
-            self.optimal_label.setText("Recommended: N/A")
-            return
-
-        hole_strs = [self.engine._tuple_to_str(c) for c in hole]
-        board_strs = [self.engine._tuple_to_str(c) for c in self.engine.community]
-        active_count = sum(self.engine.active)
-        try:
-            eq = estimate_equity_vs_random(hole_strs, board_strs, active_count)
-            self.equity_label.setText(f"Equity: {eq*100:.1f}%")
-        except Exception:
-            self.equity_label.setText("Equity: err")
-
-        try:
-            action, amt = optimal_ai_move(self.engine, self.player_seat, sample_count=100)
-            if action in {"bet", "raise"}:
-                self.optimal_label.setText(f"Recommended: {action} {amt}")
-            else:
-                self.optimal_label.setText(f"Recommended: {action}")
-        except Exception:
-            self.optimal_label.setText("Recommended: err")
 
     def _update_action_controls(self) -> None:
         """Enable or disable action buttons based on game state."""
@@ -542,14 +495,6 @@ class MainWindow(QMainWindow):
             for w in [self.bet_spin, self.btn_3bb, self.btn_half_pot, self.btn_pot, self.btn_max, self.bet_btn]:
                 w.setEnabled(can_bet)
 
-    def _update_solver_params(self) -> None:
-        """Generate a solver parameter file from the current game state."""
-        if not self.use_solver.isChecked():
-            return
-        param_dir = os.path.join(os.path.dirname(__file__), "solver_params")
-        path = os.path.join(param_dir, "current.json")
-        simple_parameter_file(self.engine, self.player_seat, path)
-        self.solver_label.setText(f"Solver file: {path}")
 
     def update_history(self):
         hist = getattr(self.engine, "_current_history", None)
