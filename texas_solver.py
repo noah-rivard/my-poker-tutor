@@ -40,6 +40,20 @@ def run_console_solver(
     return result.stdout
 
 
+def launch_solver_gui(
+    *, exe_dir: Path | str = DEFAULT_EXE_DIR, use_wine: bool | None = None
+) -> subprocess.Popen:
+    """Launch ``TexasSolverGui.exe`` and return the process handle."""
+
+    exe_path = Path(exe_dir) / "TexasSolverGui.exe"
+    cmd = [str(exe_path)]
+    if use_wine is None:
+        use_wine = sys.platform != "win32"
+    if use_wine:
+        cmd.insert(0, "wine")
+    return subprocess.Popen(cmd)
+
+
 def simple_parameter_file(
     *,
     pot: int,
