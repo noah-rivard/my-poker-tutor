@@ -2,6 +2,7 @@
 import os
 import random
 import sys
+from typing import Optional
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QFont, QPainter, QPixmap
@@ -14,7 +15,6 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QPlainTextEdit,
     QPushButton,
-    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -22,7 +22,18 @@ from PyQt5.QtWidgets import (
 )
 
 from engine import PokerEngine
-from ai import estimate_equity_vs_random, estimate_hand_strength
+from texas_solver import simple_parameter_file
+from ai import (
+    estimate_equity_vs_random,
+    optimal_ai_move,
+    basic_ai_decision,
+)
+
+
+def _open_log_file():
+    """Return a file handle for appending UI logs."""
+    path = os.path.join(os.path.dirname(__file__), "ui.log")
+    return open(path, "a", encoding="utf-8")
 
 
 class CardWidget(QFrame):
@@ -86,6 +97,7 @@ class SeatWidget(QWidget):
         self.seat_id = seat_id
         self._winner = False
         self._turn = False
+        self._active = True
         self.is_player = False
         layout = QVBoxLayout(self)
         self.info_label = QLabel(f"Seat {seat_id}")
@@ -113,6 +125,15 @@ class SeatWidget(QWidget):
         elif self.is_player:
             parts.append("border: 2px solid blue")
         self.setStyleSheet("; ".join(parts))
+
+        color = "gray" if not self._active else ""
+        for lbl in (
+            self.info_label,
+            self.stack_label,
+            self.bet_label,
+            self.total_label,
+        ):
+            lbl.setStyleSheet(f"color: {color}" if color else "")
 
     def setStack(self, stack):
         self.stack_label.setText(f"Stack: {stack}")
@@ -147,6 +168,13 @@ class SeatWidget(QWidget):
             self.info_label.setText(f"Seat {self.seat_id} (You)")
         else:
             self.info_label.setText(f"Seat {self.seat_id}")
+        self._update_style()
+
+    def setActive(self, active: bool) -> None:
+        """Mark this seat as active or folded."""
+        self._active = active
+        if not active:
+            self.setCards(None)
         self._update_style()
 
 class CommunityWidget(QWidget):
@@ -186,6 +214,8 @@ class MainWindow(QMainWindow):
         self.engine = PokerEngine(num_players=6)
         self.stage = 0
         self._auto_next = False
+        self.log_file = _open_log_file()
+        self.log_event("Application started")
         central = QWidget()
         self.setCentralWidget(central)
         vbox = QVBoxLayout(central)
@@ -220,22 +250,21 @@ class MainWindow(QMainWindow):
         self.pot_label = QLabel("Pot: 0")
         vbox.addWidget(self.pot_label, alignment=Qt.AlignCenter)
 
-        # equity and hand strength display
+        # equity and suggestion display
         self.show_stats = QCheckBox("Show Stats")
         self.show_stats.setChecked(True)
+        self.show_stats.stateChanged.connect(lambda _: self._update_stats())
         vbox.addWidget(self.show_stats, alignment=Qt.AlignCenter)
         self.equity_label = QLabel("Equity: N/A")
-        self.strength_label = QLabel("Hand Strength: N/A")
+        self.optimal_label = QLabel("Recommended: N/A")
         vbox.addWidget(self.equity_label, alignment=Qt.AlignCenter)
-        vbox.addWidget(self.strength_label, alignment=Qt.AlignCenter)
+        vbox.addWidget(self.optimal_label, alignment=Qt.AlignCenter)
 
-        # bot speed control
-        ctrl_top = QHBoxLayout()
-        ctrl_top.addWidget(QLabel("Bot Speed:"))
-        self.bot_speed = QSlider(Qt.Horizontal)
-        self.bot_speed.setRange(1, 5)
-        ctrl_top.addWidget(self.bot_speed)
-        vbox.addLayout(ctrl_top)
+        self.use_solver = QCheckBox("Auto-update solver")
+        vbox.addWidget(self.use_solver, alignment=Qt.AlignCenter)
+        self.solver_label = QLabel("Solver file: N/A")
+        vbox.addWidget(self.solver_label, alignment=Qt.AlignCenter)
+
 
         # action controls
         action_layout = QHBoxLayout()
@@ -250,17 +279,19 @@ class MainWindow(QMainWindow):
 
         self.btn_3bb = QPushButton("3BB")
         self.btn_3bb.clicked.connect(
-            lambda: self.set_bet_amount(self.engine.bb_amt * 3)
+            lambda: self.set_bet_amount(self.engine.bb_amt * 3, "3BB")
         )
         self.btn_half_pot = QPushButton("50% Pot")
         self.btn_half_pot.clicked.connect(
-            lambda: self.set_bet_amount(self.engine.pot // 2)
+            lambda: self.set_bet_amount(self.engine.pot // 2, "50% Pot")
         )
         self.btn_pot = QPushButton("Pot")
-        self.btn_pot.clicked.connect(lambda: self.set_bet_amount(self.engine.pot))
+        self.btn_pot.clicked.connect(
+            lambda: self.set_bet_amount(self.engine.pot, "Pot")
+        )
         self.btn_max = QPushButton("Max")
         self.btn_max.clicked.connect(
-            lambda: self.set_bet_amount(self.engine.stacks[self.player_seat])
+            lambda: self.set_bet_amount(self.engine.stacks[self.player_seat], "Max")
         )
 
         self.bet_btn = QPushButton("Bet/Raise")
@@ -293,6 +324,7 @@ class MainWindow(QMainWindow):
     def _start_hand(self) -> None:
         """Deal a new hand and reset UI state."""
         self._auto_next = False
+        self.log_event("--- New hand ---")
         self._assign_random_seat()
         holes = self.engine.new_hand()
         for i, seat in enumerate(self.seats):
@@ -302,6 +334,7 @@ class MainWindow(QMainWindow):
             seat.setTotal(self.engine.total_contrib[i])
             seat.setCards(holes.get(i), face_down=not seat.is_player)
             seat.set_turn(i == self.engine.turn)
+            seat.setActive(True)
         self.community.setCards([])
         self.pot_display.setText(f"Pot: {self.engine.pot}")
         self.pot_label.setText(f"Pot: {self.engine.pot}")
@@ -340,6 +373,9 @@ class MainWindow(QMainWindow):
         if win_set and not self.winners_displayed:
             for seat_num in sorted(win_map):
                 amt = win_map[seat_num]
+                msg = f"Hand complete. Seat {seat_num} won {amt}"
+                self.history_box.appendPlainText(msg)
+                self.log_event(msg)
                 label = hand_map.get(seat_num)
                 line = f"Hand complete. Seat {seat_num} won {amt}"
                 if label:
@@ -358,22 +394,34 @@ class MainWindow(QMainWindow):
         for i, seat in enumerate(self.seats):
             seat.setPlayer(i == self.player_seat)
 
-    def set_bet_amount(self, amount: int):
-        """Set the bet spin box to ``amount`` clamped to the player's stack."""
+    def log_event(self, text: str) -> None:
+        """Append ``text`` to the persistent UI log."""
+        if hasattr(self, "log_file") and self.log_file:
+            self.log_file.write(text + "\n")
+            self.log_file.flush()
+
+    def set_bet_amount(self, amount: int, origin: Optional[str] = None) -> None:
+        """Set ``bet_spin`` to ``amount`` and log the origin if provided."""
         amount = max(0, min(int(amount), self.engine.stacks[self.player_seat]))
         self.bet_spin.setValue(amount)
+        if origin:
+            self.log_event(f"Clicked {origin} -> bet amount {amount}")
 
     def player_action(self, action):
         if self.stage == 0:
             return
         if action == "fold":
+            self.log_event("Clicked Fold")
             self.engine.player_action("fold")
         elif action == "call":
             if self.engine.contributions[self.player_seat] < self.engine.current_bet:
+                self.log_event("Clicked Call")
                 self.engine.player_action("call")
             else:
+                self.log_event("Clicked Check")
                 self.engine.player_action("check")
         elif action == "bet":
+            self.log_event(f"Clicked Bet/Raise {self.bet_spin.value()}")
             amt = self.bet_spin.value()
             # A bet is only possible when no chips have been wagered in the
             # current betting round. Otherwise the action should be treated as
@@ -388,16 +436,14 @@ class MainWindow(QMainWindow):
     def bot_action(self):
         if self.engine.stage == "complete" or self.engine.turn == self.player_seat:
             return
-        if self.engine.contributions[self.engine.turn] < self.engine.current_bet:
-            self.engine.player_action("call")
-        else:
-            self.engine.player_action("check")
+        action, amount = basic_ai_decision(self.engine, self.engine.turn)
+        self.engine.player_action(action, amount)
         self.update_display()
-        delay = 1000 // max(1, self.bot_speed.value())
-        QTimer.singleShot(delay, self.bot_action)
+        QTimer.singleShot(1000, self.bot_action)
 
     def update_display(self):
         for i, seat in enumerate(self.seats):
+            seat.setActive(self.engine.active[i])
             seat.setStack(self.engine.stacks[i])
             seat.setBet(self.engine.contributions[i])
             seat.setTotal(self.engine.total_contrib[i])
@@ -412,6 +458,7 @@ class MainWindow(QMainWindow):
         self.pot_label.setText(f"Pot: {self.engine.pot}")
         self._update_stats()
         self._update_action_controls()
+        self._update_solver_params()
         self.update_history()
         if (
             self.stage == 1
@@ -421,17 +468,17 @@ class MainWindow(QMainWindow):
             self._show_results()
 
     def _update_stats(self) -> None:
-        """Update equity and hand strength displays."""
+        """Update equity and recommended move displays."""
         visible = self.show_stats.isChecked()
         self.equity_label.setVisible(visible)
-        self.strength_label.setVisible(visible)
+        self.optimal_label.setVisible(visible)
         if not visible:
             return
 
         hole = self.engine.hole_cards.get(self.player_seat)
         if not hole:
             self.equity_label.setText("Equity: N/A")
-            self.strength_label.setText("Hand Strength: N/A")
+            self.optimal_label.setText("Recommended: N/A")
             return
 
         hole_strs = [self.engine._tuple_to_str(c) for c in hole]
@@ -439,12 +486,18 @@ class MainWindow(QMainWindow):
         active_count = sum(self.engine.active)
         try:
             eq = estimate_equity_vs_random(hole_strs, board_strs, active_count)
-            hs = estimate_hand_strength(hole_strs, board_strs, active_count)
             self.equity_label.setText(f"Equity: {eq*100:.1f}%")
-            self.strength_label.setText(f"Hand Strength: {hs*100:.1f}%")
         except Exception:
             self.equity_label.setText("Equity: err")
-            self.strength_label.setText("Hand Strength: err")
+
+        try:
+            action, amt = optimal_ai_move(self.engine, self.player_seat, sample_count=100)
+            if action in {"bet", "raise"}:
+                self.optimal_label.setText(f"Recommended: {action} {amt}")
+            else:
+                self.optimal_label.setText(f"Recommended: {action}")
+        except Exception:
+            self.optimal_label.setText("Recommended: err")
 
     def _update_action_controls(self) -> None:
         """Enable or disable action buttons based on game state."""
@@ -489,6 +542,15 @@ class MainWindow(QMainWindow):
             for w in [self.bet_spin, self.btn_3bb, self.btn_half_pot, self.btn_pot, self.btn_max, self.bet_btn]:
                 w.setEnabled(can_bet)
 
+    def _update_solver_params(self) -> None:
+        """Generate a solver parameter file from the current game state."""
+        if not self.use_solver.isChecked():
+            return
+        param_dir = os.path.join(os.path.dirname(__file__), "solver_params")
+        path = os.path.join(param_dir, "current.json")
+        simple_parameter_file(self.engine, self.player_seat, path)
+        self.solver_label.setText(f"Solver file: {path}")
+
     def update_history(self):
         hist = getattr(self.engine, "_current_history", None)
         if not hist:
@@ -513,6 +575,7 @@ class MainWindow(QMainWindow):
             else:
                 line = f"Seat {player} {act} {amt}"
             self.history_box.appendPlainText(line)
+            self.log_event(line)
         self.last_action_index = len(actions)
 
         if (
@@ -534,6 +597,9 @@ class MainWindow(QMainWindow):
                         hand_map[w] = label
             for seat_num in sorted(win_map):
                 amt = win_map[seat_num]
+                msg = f"Hand complete. Seat {seat_num} won {amt}"
+                self.history_box.appendPlainText(msg)
+                self.log_event(msg)
                 label = hand_map.get(seat_num)
                 line = f"Hand complete. Seat {seat_num} won {amt}"
                 if label:
@@ -543,9 +609,16 @@ class MainWindow(QMainWindow):
 
     def on_button(self):
         if self.stage == 0:
+            self.log_event("Clicked Deal")
             self._start_hand()
         elif self.stage == 1 and self.engine.stage == "complete":
+            self.log_event("Clicked Show Results")
             self._show_results()
+
+    def closeEvent(self, event):
+        if hasattr(self, "log_file") and self.log_file:
+            self.log_file.close()
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":

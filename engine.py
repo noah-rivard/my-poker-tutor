@@ -6,7 +6,10 @@ Poker game engine for Texas Hold'em using pokerkit.
 
 import json
 import random
+import tempfile
+from pathlib import Path
 
+import texas_solver
 from pokerkit.pokerkit.hands import StandardHighHand
 from pokerkit.pokerkit.utilities import Card as PKCard
 from pokerkit.pokerkit.utilities import Deck
@@ -440,3 +443,33 @@ class PokerEngine:
     def add_chips(self, player: int, amount: int) -> None:
         """Add chips to a player's stack."""
         self.stacks[player] += amount
+
+    def solve_current_spot(
+        self,
+        *,
+        range_oop: str,
+        range_ip: str,
+        exe_dir: Path | str = texas_solver.DEFAULT_EXE_DIR,
+    ) -> str:
+        """Call TexasSolver for the current board state."""
+
+        board = [self._tuple_to_str(c) for c in self.community]
+        stack = min(self.stacks[i] for i in range(self.num_players) if self.active[i])
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
+            param = texas_solver.simple_parameter_file(
+                pot=self.pot,
+                stack=stack,
+                board=board,
+                range_oop=range_oop,
+                range_ip=range_ip,
+                output_path=tmp.name,
+            )
+
+        try:
+            return texas_solver.run_console_solver(param, exe_dir=exe_dir, timeout=15)
+        finally:
+            try:
+                Path(param).unlink()
+            except FileNotFoundError:
+                pass
