@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from pathlib import Path
 from engine import PokerEngine
@@ -29,7 +30,12 @@ class TestTexasSolverUtils(unittest.TestCase):
             self.assertTrue(text[-1].startswith("build_tree"))
 
     def test_engine_parameter_file(self):
-        eng = PokerEngine(num_players=2, starting_stack=100, sb_amt=1, bb_amt=2)
+        eng = PokerEngine(
+            num_players=2,
+            starting_stack=100,
+            sb_amt=1,
+            bb_amt=2,
+        )
         eng.new_hand()
         with tempfile.TemporaryDirectory() as tmpdir:
             out = os.path.join(tmpdir, "params.json")
@@ -39,6 +45,20 @@ class TestTexasSolverUtils(unittest.TestCase):
             self.assertEqual(data["hero_seat"], eng.turn)
             self.assertIn("0", data["holes"])
             self.assertEqual(data["pot"], eng.pot)
+
+    def test_launch_solver_gui_passes_param(self):
+        with patch("texas_solver.subprocess.Popen") as popen, patch(
+            "texas_solver.sys.platform",
+            "win32",
+        ):
+            texas_solver.launch_solver_gui(
+                exe_dir="C:/solver",
+                param_file="spot.json",
+            )
+            popen.assert_called_once_with([
+                "C:/solver/TexasSolverGui.exe",
+                "spot.json",
+            ])
 
 
 if __name__ == "__main__":

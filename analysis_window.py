@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from ai import estimate_equity_vs_random, optimal_ai_move
-from texas_solver import simple_parameter_file, launch_solver_gui
+from texas_solver import engine_parameter_file, launch_solver_gui
 from engine import PokerEngine
 
 
@@ -47,7 +47,7 @@ class AnalysisWindow(QMainWindow):
         layout.addWidget(self.solver_label, alignment=Qt.AlignCenter)
 
         self.launch_btn = QPushButton("Launch Solver GUI")
-        self.launch_btn.clicked.connect(launch_solver_gui)
+        self.launch_btn.clicked.connect(self._launch_solver_gui)
         layout.addWidget(self.launch_btn, alignment=Qt.AlignCenter)
 
     def set_context(self, engine: PokerEngine, seat: int) -> None:
@@ -99,6 +99,15 @@ class AnalysisWindow(QMainWindow):
         param_dir = os.path.join(os.path.dirname(__file__), "solver_params")
         os.makedirs(param_dir, exist_ok=True)
         path = os.path.join(param_dir, "current.json")
-        simple_parameter_file(self.engine, self.seat, path)
+        engine_parameter_file(self.engine, self.seat, path)
         self.solver_label.setText(f"Solver file: {path}")
 
+    def _launch_solver_gui(self) -> None:
+        """Launch the solver GUI with the current game state."""
+
+        param_dir = os.path.join(os.path.dirname(__file__), "solver_params")
+        os.makedirs(param_dir, exist_ok=True)
+        path = os.path.join(param_dir, "launch.json")
+        engine_parameter_file(self.engine, self.seat, path)
+        self.solver_label.setText(f"Solver file: {path}")
+        launch_solver_gui(param_file=path)
