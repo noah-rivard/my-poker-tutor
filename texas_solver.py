@@ -41,12 +41,28 @@ def run_console_solver(
 
 
 def launch_solver_gui(
-    *, exe_dir: Path | str = DEFAULT_EXE_DIR, use_wine: bool | None = None
+    *,
+    exe_dir: Path | str = DEFAULT_EXE_DIR,
+    use_wine: bool | None = None,
+    param_file: Path | str | None = None,
 ) -> subprocess.Popen:
-    """Launch ``TexasSolverGui.exe`` and return the process handle."""
+    """Launch ``TexasSolverGui.exe`` and return the process handle.
+
+    Parameters
+    ----------
+    exe_dir : Path or str, optional
+        Directory containing the solver binary.
+    use_wine : bool or None, optional
+        Whether to prefix the command with ``wine`` on non-Windows systems.
+    param_file : Path or str, optional
+        Parameter file describing the current game state. If provided, it will
+        be passed as a command-line argument to the solver GUI.
+    """
 
     exe_path = Path(exe_dir) / "TexasSolverGui.exe"
     cmd = [str(exe_path)]
+    if param_file is not None:
+        cmd.append(str(param_file))
     if use_wine is None:
         use_wine = sys.platform != "win32"
     if use_wine:
@@ -82,7 +98,11 @@ def simple_parameter_file(
 
 
 def engine_parameter_file(engine: "PokerEngine", seat: int, path: str) -> str:
-    """Write a JSON parameter file for ``console_solver.exe`` from ``engine``."""
+    """Write a JSON parameter file for ``console_solver.exe``.
+
+    The file describes the given ``engine`` state from the perspective of the
+    player in ``seat``.
+    """
 
     data = {
         "hero_seat": seat,
